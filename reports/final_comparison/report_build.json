@@ -1,0 +1,6 @@
+{
+  "mode": "report/figure refresh from existing completed scores; no training or inference",
+  "lstm_test_report_sha256": "fa187dc054198e28bb765b593672211ab35d00b7c2b3f3890a65a1fda5ddcdb4",
+  "patchstg_test_report_sha256": "7459501e4346dcf4298f91d21aa9b4f5a84f3602a07f7187c47a6fbcaa05f337",
+  "report_builder_sha256": "7d031a5c3ac9cd4a8eb9cef6316b451633aea9e871d872241ed99f9eadb97413"
+}

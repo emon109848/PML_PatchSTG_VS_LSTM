@@ -1,0 +1,5 @@
+# Direct dependencies. Existing experiment reports record exact installed versions.
+# This is not a complete environment lock or a CUDA wheel installation command.
+numpy
+torch
+matplotlib

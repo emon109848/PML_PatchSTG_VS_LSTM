@@ -1,0 +1,23 @@
+{
+  "status": "verified",
+  "selected_epoch": 50,
+  "completed_epochs": 50,
+  "spatial_patches": 16,
+  "patch_size": 64,
+  "checkpoint_sha256": "fc9f2d10184cd6f82c659e78486793b7f84063e9485eeb9c98c53c8366469154",
+  "training_report_sha256": "762208ba23f6719ab3852eec6d12c8b83b2f80b15e0256d432197ffac0d90791",
+  "data_sha256": {
+    "flowsd.npz": "7aaf031a573bc27451360dee9d74e9359eb8205194077bf922a7a6b4432f771c",
+    "sd_meta.csv": "c72a22095d1353bc38e6cd21daa9c17602023775dada1d84420c1b721e177e4a"
+  },
+  "test": {
+    "mae": 17.194270237290937,
+    "rmse": 29.1370388301077,
+    "mape_percent": 11.170612948834867,
+    "valid_targets": 58158396,
+    "total_targets": 60118224,
+    "valid_fraction": 0.9674004341844828
+  },
+  "execution": "hash/metadata/tensor/map checks only; no model construction, forward, training or evaluation",
+  "test_metrics_source": "integrated completed saved run; unchanged"
+}

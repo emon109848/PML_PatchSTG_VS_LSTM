@@ -1,0 +1,50 @@
+{
+  "kind": "historical forecast replay; cached real model predictions; no live traffic or road simulation",
+  "checkpoint_sha256": "fc9f2d10184cd6f82c659e78486793b7f84063e9485eeb9c98c53c8366469154",
+  "epoch": 50,
+  "seed": 2023,
+  "source_sha256": {
+    "flowsd.npz": "7aaf031a573bc27451360dee9d74e9359eb8205194077bf922a7a6b4432f771c",
+    "sd_meta.csv": "c72a22095d1353bc38e6cd21daa9c17602023775dada1d84420c1b721e177e4a"
+  },
+  "selection": {
+    "start_window": 0,
+    "frames": 96,
+    "frame_stride": 1
+  },
+  "software": {
+    "python": "3.14.8",
+    "torch": "2.14.1+cu130",
+    "numpy": "2.5.4"
+  },
+  "hardware": {
+    "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+    "gpu": {
+      "name": "NVIDIA GeForce RTX 5060 Laptop GPU",
+      "total_memory_bytes": 8518041600,
+      "compute_capability": [
+        12,
+        0
+      ]
+    }
+  },
+  "artifact": {
+    "name": "index.html",
+    "sha256": "468e85a05261073c6fd5558657a406aab82745fbe2bbdfb3d824e1eca6e503a4"
+  },
+  "sensors": 716,
+  "first_issued_at": "2019-10-19T23:45",
+  "last_issued_at": "2019-10-20T23:30",
+  "git": {
+    "revision": "a0fe122a6fe32a69ee9da885cdbb5fa0ebcfdbe6",
+    "status": "?? demos/\n?? docs/patchstg_replay.md\n?? scripts/export_patchstg_replay.py\n?? src/traffic_benchmark/evaluation/replay.py\n?? tests/test_replay.py"
+  },
+  "path": "runs/patchstg_replay_v1",
+  "bytes": 6916411,
+  "checks": {
+    "python_tests": 63,
+    "javascript_control_tests": "passed on synthetic and actual exported data",
+    "browser_visual_check": "not performed; no browser automation installed"
+  },
+  "note": "Display replay only, not a new benchmark. Data stays in ignored runs/."
+}

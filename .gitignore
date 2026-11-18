@@ -1,0 +1,30 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+temp/
+*.log
+data/raw/
+runs/
+
+# Local credentials, assistant state and editor files
+.aws/
+.codex/
+.agents/
+.env
+.env.*
+!.env.example
+.venv/
+venv/
+.DS_Store
+Thumbs.db
+
+# Model weights, binary data and generated experiment archives
+*.pt
+*.pth
+*.ckpt
+*.npz
+*.npy
+*.zip
+*.tar
+*.tar.gz
+*.bundle

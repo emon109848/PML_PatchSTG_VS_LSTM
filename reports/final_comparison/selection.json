@@ -1,0 +1,60 @@
+{
+  "selection_rule": "lowest best validation MAE among completed widths 128/256; smaller width on exact ties",
+  "revised_scope": "User deferred width 384 for project completion before contextual test evaluation",
+  "excluded_hidden_size": 384,
+  "original_three_candidate_suite_complete": false,
+  "candidates": [
+    {
+      "hidden_size": 128,
+      "epoch": 39,
+      "validation": {
+        "mae": 15.338497669494556,
+        "rmse": 26.31292570948091,
+        "mape_percent": 9.35315353343786,
+        "valid_targets": 58367674,
+        "windows": 6997,
+        "updates": 0,
+        "skipped_batches": 0
+      },
+      "parameters": 234244,
+      "checkpoint": "/mnt/c/Users/SH Emon/Desktop/Projects/Traffic Prediction PML/runs/context_lstm_suite_v1/hidden_128/best.pt",
+      "checkpoint_sha256": "d3c0c7da1474de26d815a55575025b9c7ae0253dd36890b5a86bd20fa5725fcd",
+      "training_report_sha256": "ff4e7b540aeb8e66f4a7fb65c7c65faca1488c2679257191e103904a1615d795"
+    },
+    {
+      "hidden_size": 256,
+      "epoch": 37,
+      "validation": {
+        "mae": 15.065619913076,
+        "rmse": 25.861147839754906,
+        "mape_percent": 9.174570818010892,
+        "valid_targets": 58367674,
+        "windows": 6997,
+        "updates": 0,
+        "skipped_batches": 0
+      },
+      "parameters": 848644,
+      "checkpoint": "/mnt/c/Users/SH Emon/Desktop/Projects/Traffic Prediction PML/runs/context_lstm_suite_v1/hidden_256/best.pt",
+      "checkpoint_sha256": "41a680cd7d7f6e5356b64c18d3dd214807689210fd3090082afb17245727f482",
+      "training_report_sha256": "3ce67dc0b22f1b438b44fd90d930a22c47e8cd5d47a687be79cbafd2f5fd23bb"
+    }
+  ],
+  "selected": {
+    "hidden_size": 256,
+    "epoch": 37,
+    "validation": {
+      "mae": 15.065619913076,
+      "rmse": 25.861147839754906,
+      "mape_percent": 9.174570818010892,
+      "valid_targets": 58367674,
+      "windows": 6997,
+      "updates": 0,
+      "skipped_batches": 0
+    },
+    "parameters": 848644,
+    "checkpoint": "/mnt/c/Users/SH Emon/Desktop/Projects/Traffic Prediction PML/runs/context_lstm_suite_v1/hidden_256/best.pt",
+    "checkpoint_sha256": "41a680cd7d7f6e5356b64c18d3dd214807689210fd3090082afb17245727f482",
+    "training_report_sha256": "3ce67dc0b22f1b438b44fd90d930a22c47e8cd5d47a687be79cbafd2f5fd23bb"
+  },
+  "frozen_utc": "2026-11-18T10:32:41.358371+00:00"
+}

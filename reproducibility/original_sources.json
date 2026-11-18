@@ -1,0 +1,66 @@
+{
+  "audit_data.py": {
+    "original_sha256": "1966bd5b5b95e723cc4bbd71d30e5c5d6451216aad36ca4289b02c4a9ff5c0c5",
+    "original_snapshot": "reproducibility/original_sources/audit_data.py"
+  },
+  "baselines.py": {
+    "original_sha256": "147ad8254747390c03af9f4adc3ac32ee6b429ce0c2c4ecf3b5be80183a0af11",
+    "original_snapshot": "reproducibility/original_sources/baselines.py"
+  },
+  "check_context_lstm.py": {
+    "original_sha256": "2ebf313209ebbcbbae84bdb86ffc01a702469681bbdbe0cbbe9491385292d480",
+    "original_snapshot": "reproducibility/original_sources/check_context_lstm.py"
+  },
+  "check_context_training.py": {
+    "original_sha256": "a53db2c9a17c3ca9567dcf280784104a945c1e9b2dd381ba03e38d0a611f2198",
+    "original_snapshot": "reproducibility/original_sources/check_context_training.py"
+  },
+  "check_lstm.py": {
+    "original_sha256": "6c4e536d4769bea1dbbad09995c6a23215a1b653d86f97d0ad3dedd96ec3b5b2",
+    "original_snapshot": "reproducibility/original_sources/check_lstm.py"
+  },
+  "context_lstm.py": {
+    "original_sha256": "07e17ce245f4702b526c947aca6302de5b411fb11b2c6bd251462ee65a5c60b1",
+    "original_snapshot": "reproducibility/original_sources/context_lstm.py"
+  },
+  "continue_lstm.py": {
+    "original_sha256": "7f96d34b045c221d4b5fbd1456d4848331b01aa9eb3163b9d567688bda776292",
+    "original_snapshot": "reproducibility/original_sources/continue_lstm.py"
+  },
+  "data_pipeline.py": {
+    "original_sha256": "8e04c9ddf0f1217deb8dd51e51f2d30806d415ad297e95fdd757770a5430a862",
+    "original_snapshot": "reproducibility/original_sources/data_pipeline.py"
+  },
+  "evaluate_lstm.py": {
+    "original_sha256": "e67f1768e59aa622c6c1d2aecdc3420218e34eb976cd9d90187ef988b74b3c05",
+    "original_snapshot": "reproducibility/original_sources/evaluate_lstm.py"
+  },
+  "evaluation.py": {
+    "original_sha256": "2e1a5380154445ca4cfc12e557921f2c1df957ff7c710d277afee1fcfb78852d",
+    "original_snapshot": "reproducibility/original_sources/evaluation.py"
+  },
+  "finalize_context_lstm.py": {
+    "original_sha256": "232cc3a8df1489e77892dc36f80cffcd8a9e3b48ce9126c5be9ff0c2952bdf78",
+    "original_snapshot": "reproducibility/original_sources/finalize_context_lstm.py"
+  },
+  "inspect_data.py": {
+    "original_sha256": "b9a5b6011625b7003b4efee659bf1cc4dea284196ebfce605313d290b5a7ed5d",
+    "original_snapshot": "reproducibility/original_sources/inspect_data.py"
+  },
+  "lstm_model.py": {
+    "original_sha256": "4745599eb7764a50c4279e73a87432479f7c6ed9eec17a7d2c6e0a204179c073",
+    "original_snapshot": "reproducibility/original_sources/lstm_model.py"
+  },
+  "train_context_lstm.py": {
+    "original_sha256": "cec675182ae31ed9eac21ee2db8dbca04bdeaa90367931c55cb009c7de9b5eef",
+    "original_snapshot": "reproducibility/original_sources/train_context_lstm.py"
+  },
+  "train_lstm.py": {
+    "original_sha256": "7e1f2e170aaf5ddfd15aacfaf8ec5a4e16c288a4cb7c3576c7e9f555adc5b6ea",
+    "original_snapshot": "reproducibility/original_sources/train_lstm.py"
+  },
+  "train_lstm_diagnostic.py": {
+    "original_sha256": "a81386cb2076702b1d3afced989eee1af0386671e86f4e49915484da69adf059",
+    "original_snapshot": "reproducibility/original_sources/train_lstm_diagnostic.py"
+  }
+}

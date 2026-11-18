@@ -1,0 +1,21 @@
+{
+  "scope": "Submission layout migration; no neural training or contextual test evaluation",
+  "checks": {
+    "original_source_snapshots_sha256_verified": 16,
+    "context_widths_forward_and_weights_match_original_exactly": [
+      128,
+      256,
+      384
+    ],
+    "synthetic_training_validation_and_serialized_resume": "passed",
+    "frozen_selection_prepare_only": "hidden 256, epoch 37; passed",
+    "baseline_validation_mae": {
+      "persistence": 64.13363222111998,
+      "seasonal_average": 19.744174722407486
+    },
+    "bundled_reference_checkpoint_and_report_generation": "passed using discarded fixture",
+    "local_markdown_links": "all resolve"
+  },
+  "preserved": "Raw data, contextual suite checkpoint/report bytes and historical original sources",
+  "current_entrypoint": "scripts/finalize_context_lstm.py"
+}

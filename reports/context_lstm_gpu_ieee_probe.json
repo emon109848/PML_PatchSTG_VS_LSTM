@@ -1,0 +1,70 @@
+{
+  "device": "cuda",
+  "torch": "2.14.1+cu130",
+  "seed": 2023,
+  "precision": "IEEE FP32 matmul and cuDNN RNN; no AMP",
+  "gpu": "NVIDIA GeForce RTX 5060 Laptop GPU",
+  "results": [
+    {
+      "hidden_size": 128,
+      "layers": 2,
+      "parameters": 234244,
+      "batch_size": 4,
+      "prediction_shape": [
+        4,
+        12,
+        716,
+        1
+      ],
+      "warmup_updates": 1,
+      "timed_updates": 5,
+      "mean_step_seconds": 0.034462621400598435,
+      "isolated_max_difference_original_units": 4.57763671875e-05,
+      "exact_lstm_input_layout": true,
+      "peak_allocated_mib": 733.8154296875,
+      "peak_reserved_mib": 1046.0,
+      "finite_gradients_weights_and_sensor_layout": true
+    },
+    {
+      "hidden_size": 256,
+      "layers": 2,
+      "parameters": 848644,
+      "batch_size": 4,
+      "prediction_shape": [
+        4,
+        12,
+        716,
+        1
+      ],
+      "warmup_updates": 1,
+      "timed_updates": 5,
+      "mean_step_seconds": 0.043141837403527464,
+      "isolated_max_difference_original_units": 6.103515625e-05,
+      "exact_lstm_input_layout": true,
+      "peak_allocated_mib": 842.84716796875,
+      "peak_reserved_mib": 1030.0,
+      "finite_gradients_weights_and_sensor_layout": true
+    },
+    {
+      "hidden_size": 384,
+      "layers": 2,
+      "parameters": 1856260,
+      "batch_size": 4,
+      "prediction_shape": [
+        4,
+        12,
+        716,
+        1
+      ],
+      "warmup_updates": 1,
+      "timed_updates": 5,
+      "mean_step_seconds": 0.09584844560013153,
+      "isolated_max_difference_original_units": 0.0001220703125,
+      "exact_lstm_input_layout": true,
+      "peak_allocated_mib": 1221.21435546875,
+      "peak_reserved_mib": 1322.0,
+      "finite_gradients_weights_and_sensor_layout": true
+    }
+  ],
+  "scope": "Repeated training-batch diagnostic only; weights discarded"
+}

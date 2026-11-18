@@ -1,0 +1,54 @@
+[
+  {
+    "model": "Persistence",
+    "test": {
+      "mae": 60.78248203406435,
+      "rmse": 94.3350138530444,
+      "mape_percent": 41.780132266285555,
+      "valid_targets": 58158396,
+      "total_targets": 60118224,
+      "valid_fraction": 0.9674004341844828
+    },
+    "source": "/mnt/c/Users/SH Emon/Desktop/Projects/Traffic Prediction PML/reports/persistence_sd_v1.json",
+    "source_sha256": "ba20ced4c5d36b38a41d15fe443a393e54e896c80605d7288bf34293466e8ad8",
+    "evaluation_origin": "saved completed run; scores reused without retraining or reevaluation"
+  },
+  {
+    "model": "Seasonal average",
+    "test": {
+      "mae": 28.004523008658758,
+      "rmse": 53.390612925772594,
+      "mape_percent": 19.996410643560477,
+      "valid_targets": 58158396,
+      "total_targets": 60118224,
+      "valid_fraction": 0.9674004341844828
+    },
+    "source": "/mnt/c/Users/SH Emon/Desktop/Projects/Traffic Prediction PML/reports/seasonal_average_sd_v1.json",
+    "source_sha256": "d034dbe945a6e2d9057a5a01e21cda3e4cc94e6aaf1091d10edd5a8350bd1f54",
+    "evaluation_origin": "saved completed run; scores reused without retraining or reevaluation"
+  },
+  {
+    "model": "PatchSTG",
+    "test": {
+      "mae": 17.194270237290937,
+      "rmse": 29.1370388301077,
+      "mape_percent": 11.170612948834867,
+      "valid_targets": 58158396,
+      "total_targets": 60118224,
+      "valid_fraction": 0.9674004341844828
+    },
+    "source": "/mnt/c/Users/SH Emon/Desktop/Projects/Traffic Prediction PML/reports/patchstg_sd_seed2023_test_v1.json",
+    "source_sha256": "7459501e4346dcf4298f91d21aa9b4f5a84f3602a07f7187c47a6fbcaa05f337",
+    "evaluation_origin": "saved completed run; scores reused without retraining or reevaluation"
+  },
+  {
+    "model": "Contextual LSTM 256",
+    "test": {
+      "mae": 18.169578195961122,
+      "rmse": 31.948489570914994,
+      "mape_percent": 12.06460616058072,
+      "valid_targets": 58158396
+    },
+    "evaluation_origin": "new frozen evaluation in this project"
+  }
+]

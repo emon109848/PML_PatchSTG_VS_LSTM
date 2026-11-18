@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PatchSTG · Historical forecast replay</title>
+<style>
+:root{color-scheme:dark;--bg:#0c1320;--panel:#141e2e;--line:#2a394f;--muted:#a9b9ce;--text:#edf3fc;--blue:#70b6ff;--green:#59debb;--gold:#ffcb70;--purple:#e49aff}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,sans-serif}main{max-width:1360px;margin:auto;padding:28px}header{display:flex;justify-content:space-between;gap:24px;align-items:center}h1{font-size:28px;letter-spacing:-.8px;margin:2px 0}h2{font-size:17px;margin:0}p{margin:6px 0;color:var(--muted)}.eyebrow{font-size:12px;text-transform:uppercase;letter-spacing:2px;color:var(--green)}.badge{border:1px solid var(--line);padding:8px 12px;border-radius:24px;white-space:nowrap;font-size:12px;color:var(--green)}.notice{border-left:3px solid var(--gold);padding:9px 15px;background:#202334;margin:22px 0;color:#e7d8bb}.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.card,.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px}.label{font-size:12px;color:var(--muted)}.value{font-size:27px;font-weight:650;margin:5px 0}.hint{color:var(--muted);font-size:12px}.controls{margin:18px 0;display:flex;align-items:end;gap:15px;flex-wrap:wrap}label{display:block;font-size:12px;color:var(--muted);margin-bottom:5px}select,button,input{font:inherit}select,button{background:#1c2c43;color:var(--text);border:1px solid #3d526f;border-radius:7px;padding:9px 12px}select{max-width:100%}button{cursor:pointer}button:hover{background:#2b4263}button:disabled{opacity:.45;cursor:default}button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--blue);outline-offset:3px}#play{background:var(--green);color:#082b24;border-color:var(--green);min-width:88px;font-weight:650}.grow{flex:1;min-width:220px}input[type=range]{width:100%;accent-color:var(--green)}.layout{display:grid;grid-template-columns:1.7fr 1fr;gap:16px}.panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}.legend{display:flex;gap:15px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:8px}.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px}.blue{background:var(--blue)}.green{background:var(--green)}.gold{background:var(--gold)}.purple{background:var(--purple)}canvas{display:block;width:100%;height:330px}#network{height:330px;cursor:crosshair}.check{display:flex;align-items:center;gap:7px;font-size:12px;margin:0;white-space:nowrap}.table-wrap{overflow:auto;margin-top:20px}table{width:100%;border-collapse:collapse;font-size:13px;text-align:right}td,th{padding:9px 12px;border-bottom:1px solid var(--line)}th{color:var(--muted);font-weight:500}td:first-child,th:first-child{text-align:left}tr.active{background:#21394a}.footer{margin-top:20px;font-size:12px;color:var(--muted)}details{margin-top:20px}summary{cursor:pointer;color:var(--blue)}pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;color:var(--muted)}.time{font-size:13px;font-variant-numeric:tabular-nums;color:var(--text)}#error{color:var(--gold);padding:15px}#network-description{min-height:38px}@media(max-width:900px){.layout{grid-template-columns:1fr}.cards{grid-template-columns:repeat(2,1fr)}header{align-items:start;flex-direction:column;gap:8px}main{padding:18px}.controls{gap:10px}}@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<main>
+<header><div><div class="eyebrow">Traffic forecasting · SD 2019</div><h1 id="dashboard-title">Compare traffic forecasts</h1><p id="model-description">PatchSTG adaptation and BigST short history · same sensors, observations and forecast times.</p></div><span class="badge">Historical forecast replay</span></header>
+<div class="notice">Recorded test data and cached model predictions—not live traffic or a simulated road network. Calendar times are assumed; no timezone is assigned.</div>
+<div id="error" role="alert" hidden></div>
+<section class="cards" aria-label="Forecast comparison summary">
+<div class="card"><div class="label">Last observed flow</div><div class="value" id="last-flow">—</div><div class="hint">At forecast issue time</div></div>
+<div class="card"><div class="label" id="forecast-label">PatchSTG forecast · +15 min</div><div class="value" id="forecast-flow" style="color:var(--green)">—</div><div class="hint">Source flow units, not vehicle speed</div></div>
+<div class="card" id="bigst-forecast-card"><div class="label" id="bigst-forecast-label">BigST forecast · +15 min</div><div class="value" id="bigst-forecast" style="color:var(--purple)">—</div><div class="hint">Short history · no LSFE or spatial-prior regularizer</div></div>
+<div class="card"><div class="label">PatchSTG · this sensor/forecast MAE</div><div class="value" id="local-mae">—</div><div class="hint" id="valid-count">Zero targets excluded</div></div>
+<div class="card" id="bigst-error-card"><div class="label">BigST · this sensor/forecast MAE</div><div class="value" id="bigst-mae">—</div><div class="hint">Same 12 leads and nonzero target mask</div></div>
+<div class="card"><div class="label">Full test MAE · all sensors &amp; origins</div><div>PatchSTG <strong id="test-mae">—</strong></div><div id="bigst-test-row">BigST short history <strong id="bigst-test-mae">—</strong></div><div class="hint">Published benchmark · one seed · separate from local MAE</div></div>
+</section>
+<section class="controls" aria-label="Replay controls">
+<div><label for="sensor">Sensor · metadata row order assumed</label><select id="sensor"></select></div>
+<div><label for="lead">Forecast lead / map color</label><select id="lead"></select></div>
+<div id="model-view-control"><label for="model-view">Forecast lines</label><select id="model-view"><option value="both">Both models</option><option value="patchstg">PatchSTG only</option><option value="bigst">BigST only</option></select></div>
+<div><label for="speed">Playback interval</label><select id="speed"><option value="1200">1.2 seconds</option><option value="600" selected>0.6 seconds</option><option value="250">0.25 seconds</option></select></div>
+<button id="previous" aria-label="Previous forecast">←</button><button id="play">Play</button><button id="next" aria-label="Next forecast">→</button>
+<div class="grow"><label for="timeline" id="frame-label">Forecast origin</label><input id="timeline" type="range" min="0" value="0" step="1"><div class="time" id="issued-at"></div></div>
+</section>
+<section class="layout">
+<div class="panel"><div class="panel-head"><h2 id="chart-title">Sensor forecast</h2><label class="check"><input id="reveal" type="checkbox" checked>Show actual future</label></div><p class="hint">Blue shows this sensor’s history. Both forecasts use all sensors’ observed history and input calendar. Actual future is revealed only for comparison.</p><canvas id="forecast" role="img" aria-label="Observed history, predicted future, and optional actual future; numeric forecasts appear in the table below."></canvas><div class="legend"><span><i class="dot blue"></i>Observed history</span><span><i class="dot green"></i>PatchSTG prediction</span><span id="bigst-legend"><i class="dot purple"></i>BigST short-history prediction</span><span><i class="dot gold"></i>Actual future (revealed)</span></div><p class="hint">Issue time is the last observed frame. Forecast leads run from +15 to +180 minutes. Hollow circles mark zero observations, excluded from MAE.</p></div>
+<div class="panel"><div class="panel-head"><h2>SD sensor positions</h2><span class="hint" id="sensor-count"></span></div><div id="map-model-control"><label for="map-model">Map forecast model · shared color scale</label><select id="map-model"><option value="patchstg">PatchSTG adaptation</option><option value="bigst">BigST short history</option></select></div><p class="hint" id="network-description">Click a point to choose a sensor. Positions are metadata coordinates, not a road graph.</p><canvas id="network" role="img" aria-label="Sensor coordinate overview; use the sensor dropdown for keyboard selection."></canvas><div class="legend"><span><i class="dot" style="background:#3d83e8"></i>Lower forecast flow</span><span><i class="dot" style="background:#f6bc58"></i>Higher forecast flow</span></div><p class="hint" id="map-range"></p></div>
+</section>
+<section class="panel table-wrap"><div class="panel-head"><h2>All 12 forecast leads</h2><span class="hint">Source flow units · display forecasts rounded to 3 decimals</span></div><table><thead><tr id="horizon-head"><th>Lead</th><th>PatchSTG</th><th>BigST short history</th><th>Actual</th><th>PatchSTG error</th><th>BigST error</th></tr></thead><tbody id="horizon-table"></tbody></table></section>
+<details><summary>Model, selection and provenance</summary><p class="hint">This replay is illustrative, not a new benchmark. It uses chronologically selected origins with no quality filtering. Do not tune using test examples. A shared-protocol adaptation, not an official reproduction.</p><pre id="provenance"></pre></details>
+<div class="footer" id="replay-footer">716 sensors · 15-minute cadence · 12 → 12 frames. Both models are named adaptations, not official reproductions. Playback reads cached forecasts; it does not run models in your browser.</div>
+</main>
+<script id="replay-data" type="application/json">__REPLAY_DATA__</script>
+<script>
+'use strict';
+(() => {
+ const $=id=>document.getElementById(id);
+ const D=JSON.parse($('replay-data').textContent);
+ const models=D.models||{patchstg:{label:'PatchSTG adaptation',predictions:D.predictions,full_test_metrics:D.provenance.full_test_metrics}};
+ const P=models.patchstg,B=models.bigst,hasBigST=Boolean(B);
+ let frame=0,sensor=0,lead=0,timer=null,points=[];
+ const fmt=(n,d=1)=>Number(n).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});
+ const timeText=s=>s.replace('T',' ')+' (assumed calendar)';
+ const appendOption=(select,value,text)=>{const o=document.createElement('option');o.value=value;o.textContent=text;select.appendChild(o);};
+ $('dashboard-title').textContent=hasBigST?'Compare PatchSTG and BigST forecasts':'Watch PatchSTG forecast traffic';
+ $('model-description').textContent=hasBigST?'PatchSTG adaptation vs BigST short history (no LSFE/spatial prior) · same sensors and forecast times.':'Three hours of observations. Three hours of forecasts. A frozen trained model.';
+ for(const id of ['bigst-forecast-card','bigst-error-card','bigst-test-row','bigst-legend','model-view-control','map-model-control'])$(id).hidden=!hasBigST;
+ if(!hasBigST)$('replay-footer').textContent='PatchSTG adaptation · cached historical forecasts, not live traffic. Playback needs no Python or GPU.';
+ $('model-view').value='both';$('map-model').value='patchstg';
+ D.sensors.forEach((s,i)=>appendOption($('sensor'),i,`${s.id} · ${s.road} ${s.direction}`));
+ for(let i=0;i<D.horizon;i++)appendOption($('lead'),i,`+${(i+1)*D.interval_minutes} min`);
+ $('timeline').max=D.frames.length-1;
+ $('sensor-count').textContent=`${D.sensors.length} sensors`;
+ $('test-mae').textContent=fmt(P.full_test_metrics.mae,4);
+ if(hasBigST)$('bigst-test-mae').textContent=fmt(B.full_test_metrics.mae,4);
+ $('provenance').textContent=JSON.stringify({selection:D.selection,calendar:D.calendar_note,zero_policy:D.zero_policy,...D.provenance},null,2);
+ const columns=hasBigST?['Lead','PatchSTG','BigST short history','Actual','PatchSTG abs. error','BigST abs. error']:['Lead','PatchSTG','Actual','Absolute error'];
+ $('horizon-head').replaceChildren();for(const text of columns){const th=document.createElement('th');th.textContent=text;$('horizon-head').appendChild(th);}
+ const lat=D.sensors.map(s=>s.latitude),lon=D.sensors.map(s=>s.longitude);
+ const bounds={loX:Math.min(...lon),hiX:Math.max(...lon),loY:Math.min(...lat),hiY:Math.max(...lat)};
+ let flowMin=Infinity,flowMax=-Infinity;
+ for(const model of Object.values(models))for(const row of model.predictions)for(const values of row)for(const v of values){flowMin=Math.min(flowMin,v);flowMax=Math.max(flowMax,v);}
+ const color=v=>{const t=(v-flowMin)/(flowMax-flowMin||1);return `rgb(${Math.round(61+185*t)},${Math.round(131+57*t)},${Math.round(232-144*t)})`;};
+ $('map-range').textContent=`Shared fixed range: ${fmt(flowMin)}–${fmt(flowMax)} source flow units. Flow alone does not establish congestion.`;
+ function canvas(id){const el=$(id),rect=el.getBoundingClientRect(),ratio=window.devicePixelRatio||1;el.width=Math.round(rect.width*ratio);el.height=Math.round(rect.height*ratio);const c=el.getContext('2d');c.setTransform(ratio,0,0,ratio,0,0);return {c,w:rect.width,h:rect.height};}
+ function drawChart(history,prediction,bigst,actual,reveal){
+  const {c,w,h}=canvas('forecast'),pad={left:52,right:20,top:25,bottom:43};
+  const view=$('model-view').value;
+  const showPatch=!hasBigST||view!=='bigst',showBig=hasBigST&&view!=='patchstg';
+  const vals=[...history,...(showPatch?prediction:[]),...(showBig?bigst:[]),...(reveal?actual:[])];
+  const low=Math.min(0,...vals),high=Math.max(...vals,1),span=high-low||1;
+  const ymin=low<0?low-span*.08:0,ymax=high+span*.12;
+  const x=i=>pad.left+i*(w-pad.left-pad.right)/(D.history+D.horizon-1);
+  const y=v=>h-pad.bottom-(v-ymin)/(ymax-ymin)*(h-pad.top-pad.bottom);
+  c.font='11px system-ui';c.textAlign='right';
+  for(let i=0;i<=4;i++){const v=ymin+(ymax-ymin)*i/4,yy=y(v);c.strokeStyle='#2a394f';c.beginPath();c.moveTo(pad.left,yy);c.lineTo(w-pad.right,yy);c.stroke();c.fillStyle='#a9b9ce';c.fillText(fmt(v,0),pad.left-8,yy+4);}
+  const boundary=x(D.history-1)+((w-pad.left-pad.right)/(D.history+D.horizon-1))/2;
+  c.fillStyle='rgba(89,222,187,.035)';c.fillRect(boundary,pad.top,w-pad.right-boundary,h-pad.bottom-pad.top);
+  c.strokeStyle='#6b819b';c.setLineDash([4,5]);c.beginPath();c.moveTo(boundary,pad.top);c.lineTo(boundary,h-pad.bottom);c.stroke();c.setLineDash([]);
+  c.fillStyle='#a9b9ce';c.textAlign='left';c.fillText('Forecast →',boundary+8,pad.top+10);
+  const series=(items,offset,stroke,dashed=false)=>{c.strokeStyle=stroke;c.lineWidth=2.2;c.setLineDash(dashed?[5,4]:[]);c.beginPath();items.forEach((v,i)=>{if(i===0)c.moveTo(x(i+offset),y(v));else c.lineTo(x(i+offset),y(v));});c.stroke();c.setLineDash([]);items.forEach((v,i)=>{c.beginPath();c.arc(x(i+offset),y(v),v===0?3.3:2.4,0,Math.PI*2);c.fillStyle=v===0?'#141e2e':stroke;c.fill();c.stroke();});};
+  series(history,0,'#70b6ff');
+  if(showPatch)series([history.at(-1),...prediction],D.history-1,'#59debb');
+  if(showBig)series([history.at(-1),...bigst],D.history-1,'#e49aff',true);
+  if(reveal)series([history.at(-1),...actual],D.history-1,'#ffcb70',true);
+  c.textAlign='center';c.fillStyle='#a9b9ce';
+  const ticks=w<450?[[0,'−165'],[D.history-1,'Issue time'],[D.history+11,'+180 min']]:[[0,'−165 min'],[D.history-1,'Issue time'],[D.history+3,'+60'],[D.history+7,'+120'],[D.history+11,'+180 min']];
+  for(const [i,label] of ticks)c.fillText(label,x(i),h-18);
+  $('forecast').setAttribute('aria-label',`Sensor ${D.sensors[sensor].id}: last observed ${fmt(history.at(-1))}; +${(lead+1)*15} minutes PatchSTG ${fmt(prediction[lead])}${hasBigST?`, BigST short history ${fmt(bigst[lead])}`:''}. Actual future ${reveal?'shown':'hidden'}. See numeric table.`);
+ }
+ function drawNetwork(){
+  const {c,w,h}=canvas('network'),margin=22;
+  const centerLat=(bounds.loY+bounds.hiY)/2*Math.PI/180;
+  const dx=(bounds.hiX-bounds.loX)*Math.cos(centerLat)||1,dy=bounds.hiY-bounds.loY||1;
+  const scale=Math.min((w-2*margin)/dx,(h-2*margin)/dy),ox=(w-dx*scale)/2,oy=(h-dy*scale)/2;
+  points=D.sensors.map(s=>({x:ox+(s.longitude-bounds.loX)*Math.cos(centerLat)*scale,y:h-oy-(s.latitude-bounds.loY)*scale}));
+  const model=hasBigST&&$('map-model').value==='bigst'?B:P;
+  points.forEach((p,i)=>{c.fillStyle=color(model.predictions[frame][i][lead]);c.globalAlpha=.82;c.beginPath();c.arc(p.x,p.y,2.8,0,Math.PI*2);c.fill();});
+  c.globalAlpha=1;const p=points[sensor];c.strokeStyle='#ffffff';c.lineWidth=2;c.beginPath();c.arc(p.x,p.y,7,0,Math.PI*2);c.stroke();
+  $('network-description').textContent=`${model.label} · +${(lead+1)*15} min. Click a point to select a sensor. Coordinates show positions, not road connections.`;
+ }
+ function render(){
+  const f=D.frames[frame],offset=f.observation_offset,reveal=$('reveal').checked;
+  const history=D.observations.slice(offset-D.history,offset).map(row=>row[sensor]);
+  const actual=D.observations.slice(offset,offset+D.horizon).map(row=>row[sensor]);
+  const pred=P.predictions[frame][sensor],bigst=hasBigST?B.predictions[frame][sensor]:null,s=D.sensors[sensor];
+  $('sensor').value=sensor;$('lead').value=lead;$('timeline').value=frame;
+  $('frame-label').textContent=`Forecast origin ${frame+1} / ${D.frames.length} · test window ${f.window_index}`;
+  $('issued-at').textContent=timeText(f.issued_at);$('chart-title').textContent=`Sensor ${s.id} · ${s.road} ${s.direction}`;
+  $('last-flow').textContent=fmt(history.at(-1));$('forecast-flow').textContent=fmt(pred[lead]);
+  $('forecast-label').textContent=hasBigST?`PatchSTG forecast · +${(lead+1)*15} min`:`Predicted flow · +${(lead+1)*15} min`;
+  if(hasBigST){$('bigst-forecast').textContent=fmt(bigst[lead]);$('bigst-forecast-label').textContent=`BigST forecast · +${(lead+1)*15} min`;}
+  const valid=actual.map((v,i)=>({v,i})).filter(x=>x.v!==0);
+  const mae=values=>reveal&&valid.length?fmt(valid.reduce((sum,x)=>sum+Math.abs(x.v-values[x.i]),0)/valid.length,2):'—';
+  $('local-mae').textContent=mae(pred);if(hasBigST)$('bigst-mae').textContent=mae(bigst);
+  $('valid-count').textContent=reveal?`${valid.length} / ${D.horizon} nonzero targets · displayed forecasts`:'Reveal actual future to see error';
+  $('previous').disabled=frame===0;$('next').disabled=frame===D.frames.length-1;$('play').disabled=D.frames.length<2;
+  $('horizon-table').replaceChildren();
+  pred.forEach((v,i)=>{const tr=document.createElement('tr');if(i===lead)tr.className='active';
+   const truth=reveal?(actual[i]===0?'0 · excluded':fmt(actual[i],3)):'Hidden';
+   const error=values=>reveal&&actual[i]!==0?fmt(Math.abs(values[i]-actual[i]),3):'—';
+   const cells=hasBigST?[`+${(i+1)*15} min`,fmt(v,3),fmt(bigst[i],3),truth,error(pred),error(bigst)]:[`+${(i+1)*15} min`,fmt(v,3),truth,error(pred)];
+   for(const text of cells){const td=document.createElement('td');td.textContent=text;tr.appendChild(td);}$('horizon-table').appendChild(tr);
+  });
+  drawChart(history,pred,bigst,actual,reveal);drawNetwork();
+ }
+ function stop(){if(timer!==null)window.clearInterval(timer);timer=null;$('play').textContent='Play';}
+ function play(){if(frame===D.frames.length-1)frame=0;timer=window.setInterval(()=>{if(frame>=D.frames.length-1){stop();return;}frame++;render();if(frame===D.frames.length-1)stop();},Number($('speed').value));$('play').textContent='Pause';render();}
+ $('play').addEventListener('click',()=>timer===null?play():stop());
+ $('previous').addEventListener('click',()=>{stop();frame=Math.max(0,frame-1);render();});
+ $('next').addEventListener('click',()=>{stop();frame=Math.min(D.frames.length-1,frame+1);render();});
+ $('timeline').addEventListener('input',e=>{stop();frame=Number(e.target.value);render();});
+ $('sensor').addEventListener('change',e=>{sensor=Number(e.target.value);render();});
+ $('lead').addEventListener('change',e=>{lead=Number(e.target.value);render();});
+ $('reveal').addEventListener('change',render);$('model-view').addEventListener('change',render);$('map-model').addEventListener('change',render);
+ $('speed').addEventListener('change',()=>{if(timer!==null){stop();play();}});
+ $('network').addEventListener('click',e=>{const rect=$('network').getBoundingClientRect(),x=e.clientX-rect.left,y=e.clientY-rect.top;let nearest=-1,dist=144;points.forEach((p,i)=>{const d=(p.x-x)**2+(p.y-y)**2;if(d<dist){nearest=i;dist=d;}});if(nearest>=0){sensor=nearest;render();}});
+ window.addEventListener('resize',render);document.addEventListener('visibilitychange',()=>{if(document.hidden)stop();});
+ render();
+})();
+</script>
+</body>
+</html>
