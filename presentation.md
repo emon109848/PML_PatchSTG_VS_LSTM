@@ -1,865 +1,1165 @@
-# Traffic forecasting with contextual LSTM and PatchSTG
+# Traffic forecasting presentation — corrected version
 
-This is an intentionally long working draft. Each slide contains material to place on the slide and speaker notes to adapt in your own words. The complete draft will exceed 20 minutes. Select and combine slides after reviewing it.
+23 main slides for approximately 21.1 minutes, excluding questions.
 
-The slide diagrams are descriptions to recreate in presentation software. Figure links point to images already in this repository. Replace presenter and course details with your own.
+The detailed deck appends 21 optional lesson/backup slides. Original decks are preserved under temp/presentation_before_review_2026-11-21.
 
-## Slide 1 — Title
+All curves use saved measurements. PatchSTG was not retrained or reevaluated. Compact slide data under reports/presentation supports rebuilding on another PC.
 
-**Insert on the slide**
+
+## Slide 1 — Forecasting traffic across 716 sensors
+
+**Section:** Opening · **Suggested minutes:** 0.45
+
+**Slide content**
+
+- Contextual LSTM versus PatchSTG
+
+- SH Emon | Practical Machine Learning / November 2026
+
+- 12 observed steps → 12 future steps | Processed LargeST-SD
+
+
+**Speaker notes**
+
+Introduce the practical forecasting question and the course-method LSTM. PatchSTG is integrated; its completed run is reused, not retrained. Present measured comparisons rather than promising a particular architecture should win.
+
+
+## Slide 2 — Which system forecasts the next three hours better?
+
+**Section:** Question · **Suggested minutes:** 0.9
+
+**Slide content**
+
+- Temporal context
+
+- Recent flow, time of / day, weekday and / sensor identity
+
+- Spatial interaction
+
+- Can other sensors' / histories improve the / complete forecasting / system?
+
+- Shared assessment
+
+- Same history, horizon, / chronological targets / and zero mask
+
+- A practical system comparison—not a controlled spatial-attention / ablation.
+
+
+**Speaker notes**
+
+Traffic can reflect recent trends, recurring calendar patterns and relationships between locations. Compare a contextual temporal LSTM with PatchSTG on matched forecast targets. We do not isolate the causal effect of spatial attention because capacity and optimization also differ.
+
+
+## Slide 3 — Dataset: processed LargeST-SD, San Diego
+
+**Section:** Data · **Suggested minutes:** 0.85
+
+**Slide content**
+
+- Property
+
+- Value
+
+- Time steps × sensors × feature
+
+- 35,040 × 716 × 1
+
+- History → horizon
+
+- 12 → 12 steps; 3 hours → 3 hours
+
+- Sampling / origin
+
+- Assumed 15 min; 2019-01-01
+
+- Forecast variable
+
+- Traffic flow in original source units
+
+- One example contains all sensors; each model uses that / information differently.
+
+
+**Speaker notes**
+
+The processed array is treated as SD 2019: 35,040 time positions, 716 sensors, one traffic-flow feature. Fifteen-minute cadence and January 1 midnight origin are assumptions: the NPZ has no timestamps or sensor IDs. Metadata ordering remains assumed. Cite Liu et al., LargeST, NeurIPS 2023.
+
+
+## Slide 4 — Chronological targets prevent overlapping-window leakage
+
+**Section:** Protocol · **Suggested minutes:** 1.15
+
+**Slide content**
+
+- Train: 60%
+
+- 21,024 frames / Fit weights and scale
+
+- Validate: 20%
+
+- 7,008 frames / Choose model/epoch
+
+- Test: 20%
+
+- 7,008 frames / Freeze, then score
+
+- Training-only normalization. Zero inputs remain; zero targets are / masked.
+
+- Rolling forecasts may use earlier observed history across a split / boundary.
+
+
+**Speaker notes**
+
+Training targets are [0,21024), validation [21024,28032), test [28032,35040). All 12 targets stay inside their split; earlier observations can supply history. Fit one global scaler on training including zeros. Keep zero inputs, exclude zero targets as a benchmark convention, and score in original units.
+
+
+## Slide 5 — Baselines make the learned-model results meaningful
+
+**Section:** References · **Suggested minutes:** 0.95
+
+**Slide content**
+
+- Method
+
+- Prediction rule
+
+- Persistence
+
+- Repeat the latest observation
+
+- Seasonal average
+
+- Training mean: sensor × weekday × slot
+
+- MAE: absolute error | RMSE: larger-error penalty / MAPE: percentage error; zero actuals excluded
+
+- All results below use pooled original-unit metrics. Lower is better.
+
+
+**Speaker notes**
+
+Persistence repeats the latest reading. Seasonal average uses nonzero training means for sensor, weekday and 15-minute slot, with sensor/global fallbacks. MAE is mean absolute error in original units; RMSE emphasizes large errors; MAPE is relative percentage error. All metrics exclude zero targets and pool errors/counts, not unweighted batch means.
+
+
+## Slide 6 — Context makes each historical LSTM step 41-dimensional
+
+**Section:** LSTM · **Suggested minutes:** 0.85
+
+**Slide content**
+
+- Historical input
+
+- Values
+
+- Normalized flow
+
+- 1
+
+- Time-slot embedding
+
+- 16
+
+- Weekday embedding
+
+- 8
+
+- Sensor-ID embedding
+
+- 16
+
+- 1 + 16 + 8 + 16 = 41 values per sensor per input step.
+
+
+**Speaker notes**
+
+A learned embedding is a vector selected by an integer ID, not a new traffic measurement. The same sensor embedding is reused over its 12 historical steps. Input calendar is reconstructed for past steps only. The shared LSTM still processes sensor histories independently.
+
+
+## Slide 7 — One shared two-layer LSTM predicts all 12 leads
+
+**Section:** LSTM · **Suggested minutes:** 1.15
+
+**Slide content**
+
+- Input sequence
+
+- 12 historical steps / 41 values per step
+
+- Two LSTM layers
+
+- 256 hidden units each / Fresh recurrent states
+
+- Forecast head
+
+- Final hidden → 12 / Original flow units
+
+- Shared parameters across sensors; no exchange of neighboring / traffic histories.
+
+
+**Speaker notes**
+
+Reorder (B,12,N,41) to (B,N,12,41), then combine batch and sensor axes. First LSTM layer produces a hidden sequence, the second reads it. Take the top layer's final hidden output, apply a linear 256-to-12 head, restore sensor order and inverse-normalize. Fresh states per independent window. All future outputs are direct, not autoregressive.
+
+
+## Slide 8 — PatchSTG encodes history, then exchanges spatial information
+
+**Section:** PatchSTG · **Suggested minutes:** 1.25
+
+**Slide content**
+
+- Encode
+
+- 12-step history / 192 values per sensor
+
+- Patch + attend
+
+- 16 × 64 positions / Five dual-attention / blocks
+
+- Restore + predict
+
+- 716 original sensors / 12 forecasts each
+
+- Coordinates form patches; training-only similarity chooses / padding positions.
+
+
+**Speaker notes**
+
+Fang et al., KDD 2025, provides the PatchSTG reference. The integrated shared-protocol adaptation projects 12 steps of traffic/numeric calendar, concatenates learned context to width 192, gathers 16 patches of 64 padded positions, applies five dual-attention blocks, restores 716 originals, and forecasts 12 normalized values. Inverse scaling occurs at loss/evaluation. Coordinates and training-derived similarity prepare patches; duplicates are not extra targets.
+
+
+## Slide 9 — Attention combines weights and Values as separate inputs
+
+**Section:** PatchSTG · **Suggested minutes:** 1.35
+
+**Slide content**
+
+- Weights = softmax(QKᵀ / √192) / Depth shape: 64 × 64
+
+- Values: separate learned / projection / Depth shape: 64 × 192
+
+- Weights × Values → 64 × 192
+
+- 1. Depth: 64 positions within a patch / 2. Breadth: 16 matching positions across patches, jointly
+
+
+**Speaker notes**
+
+Queries and Keys produce softmax-scaled scores. Values are a separate projection of representations, not derived from the scores. Multiply the weights matrix by Values. Depth attention uses 64 tokens in one patch. Breadth attention uses 16 tokens at matching positions across patches, attending jointly rather than passing sequentially from patch 0 to patch 15. Depth runs first within each block.
+
+
+## Slide 10 — Shared task and context; different modeling budgets
+
+**Section:** Comparison · **Suggested minutes:** 0.95
+
+**Slide content**
+
+- Aspect
+
+- Contextual LSTM
+
+- PatchSTG
+
+- History / horizon
+
+- 12 / 12
+
+- 12 / 12
+
+- Calendar + sensor ID
+
+- Yes
+
+- Yes
+
+- Sensor interaction
+
+- Independent histories
+
+- Spatial attention
+
+- Parameters
+
+- 848,644
+
+- 2,284,844
+
+- Compare complete systems; disclose the remaining differences.
+
+
+**Speaker notes**
+
+Both have historical traffic, time/weekday and sensor identity. LSTM is per-sensor; PatchSTG mixes spatial representations and uses coordinates/similarity. PatchSTG has 2,284,844 parameters versus 848,644. Similar context and shared splits improve comparability but parameter count, optimization and search effort differ. No causal attention-only claim.
+
+
+## Slide 11 — Training protocol: 50 epochs, batch 4, seed 2023
+
+**Section:** Training · **Suggested minutes:** 1.05
+
+**Slide content**
+
+- Setting
+
+- Contextual LSTM
+
+- PatchSTG
+
+- Optimizer
+
+- Adam
+
+- AdamW
+
+- Learning rate
+
+- 0.001 fixed
+
+- 0.002 + schedule
+
+- Decay / clipping
+
+- None / none
+
+- 0.0001 / norm 5
+
+- Model selection
+
+- Lowest validation MAE
+
+- Lowest validation MAE
+
+- Same data passes; different optimizer, schedule, capacity and / tuning effort.
+
+
+**Speaker notes**
+
+Show the actual settings rather than only the generic learning loop. LSTM Adam has fixed lr .001 without schedule/weight decay/clipping. PatchSTG AdamW starts .002, decays at epoch ends 1/35/40 by .5, weight decay .0001 and gradient clipping 5. Both use original-unit masked MAE and full validation. Same epoch count is not equal compute or search budget.
+
+
+## Slide 12 — Validation selects width 256, epoch 37
+
+**Section:** Selection · **Suggested minutes:** 0.8
+
+**Slide content**
+
+- Candidate
+
+- Best epoch
+
+- Validation MAE
+
+- LSTM 128
+
+- 39
+
+- 15.3385
+
+- LSTM 256 — selected
+
+- 37
+
+- 15.0656
+
+- PatchSTG
+
+- 50
+
+- 14.9936
+
+- Both LSTMs completed 50 epochs. Width 384 is deferred, not / silently counted.
+
+
+**Speaker notes**
+
+The two completed LSTM candidates each trained 50 epochs. Width 256 best validation is 15.0656 at epoch 37; width 128 is 15.3385 at epoch 39. PatchSTG selected epoch 50 at 14.9936. Width 384 was deferred after interim validation and before the contextual test pass, revising the search scope. Do not call it a completed three-width search.
+
+
+## Slide 13 — Learning curves now include PatchSTG's complete run
+
+**Section:** Analysis · **Suggested minutes:** 1.25
+
+**Slide content**
+
+- Figure: [learning_curves_all_models.png](reports/presentation/learning_curves_all_models.png)
+
+- Training improves steadily; validation fluctuates. Select / checkpoints, not final epochs.
+
+
+**Speaker notes**
+
+All three curves use their real saved 50-epoch reports. Training MAE pools evolving weights, while validation uses completed-epoch frozen weights. The 256 LSTM lowers training error relative to 128, but validation gains are modest. PatchSTG starts higher, then ends with the best recorded validation score. Different optimization prevents attributing trajectories solely to architecture. Dots mark each model's selected epoch.
+
+
+## Slide 14 — Frozen test: identical origins, targets and masks
+
+**Section:** Evaluation · **Suggested minutes:** 0.75
+
+**Slide content**
+
+- Freeze
+
+- LSTM epoch 37 / PatchSTG epoch 50
+
+- Score
+
+- 6,997 test windows / 58,158,396 valid pairs
+
+- Verify
+
+- Matching / source/masks / No weight updates
+
+- PatchSTG scores are reused from its saved run; no retraining or / new inference.
+
+
+**Speaker notes**
+
+Select before scoring. The contextual evaluator rechecked full validation, scored test under eval/no-grad, and verified unchanged model/checkpoint state. Reuse PatchSTG's saved completed test pass with matching hashes, origins and lead-wise target counts; it was not rerun. No significance claim from millions of overlapping targets: these are correlated forecast-target pairs, not independent experiments.
+
+
+## Slide 15 — PatchSTG records the lowest error on all three metrics
+
+**Section:** Results · **Suggested minutes:** 1.15
+
+**Slide content**
+
+- Method
+
+- MAE ↓
+
+- RMSE ↓
+
+- MAPE ↓
+
+- Persistence
+
+- 60.78
+
+- 94.34
+
+- 41.78%
+
+- Seasonal average
+
+- 28.00
+
+- 53.39
+
+- 20.00%
+
+- Contextual LSTM
+
+- 18.17
+
+- 31.95
+
+- 12.06%
+
+- PatchSTG
+
+- 17.19
+
+- 29.14
+
+- 11.17%
+
+- PatchSTG: 0.98 flow units lower MAE; 5.37% reduction relative to / LSTM.
+
+
+**Speaker notes**
+
+Read the four-method table. LSTM test MAE 18.1696 versus PatchSTG 17.1943 is a difference of .9753 original flow units. PatchSTG reduces MAE by 5.37% relative to LSTM. Saying LSTM is 5.67% higher uses the other denominator; do not mix them. These are observed single-seed differences, not statistical significance.
+
+
+## Slide 16 — Longer leads hurt persistence; learned forecasts stay stronger
+
+**Section:** Analysis · **Suggested minutes:** 1.25
+
+**Slide content**
+
+- Figure: [forecast_horizon_comparison.png](reports/presentation/forecast_horizon_comparison.png)
+
+- Neural-model zoom makes the gap visible without hiding the / baseline context.
+
+
+**Speaker notes**
+
+The left plot includes all methods. The right deliberately zooms to the two neural curves with a clearly labeled different y range, so their modest gap is visible. At 15 min: LSTM12.62, Patch11.81; at180:22.11 and20.84. PatchSTG is lower at every recorded lead. Absolute gaps grow .81 to1.27, but relative gains do not monotonically establish increasing spatial benefit. Seasonal averages are almost flat; persistence grows sharply.
+
+
+## Slide 17 — Competitive LSTM accuracy with 37.1% of the parameters
+
+**Section:** Analysis · **Suggested minutes:** 0.85
+
+**Slide content**
+
+- LSTM 256
+
+- 848,644 parameters / Test MAE 18.17
+
+- PatchSTG
+
+- 2,284,844 parameters / Test MAE 17.19
+
+- Trade-off
+
+- 37.1% of parameters / 5.67% higher MAE
+
+- Fewer parameters ≠ demonstrated faster inference. Runtime was / not controlled.
+
+
+**Speaker notes**
+
+Parameter count is a capacity/storage measure, not an inference-speed benchmark. Selected LSTM848644 is37.1% of Patch2284844, while its error is5.67% higher relative to PatchSTG. This is an informative system trade-off, not proof of efficiency superiority or that parameters alone explain accuracy. We did not control timings.
+
+
+## Slide 18 — Sensor averages hide a long tail of hard cases
+
+**Section:** Analysis · **Suggested minutes:** 1.0
+
+**Slide content**
+
+- Figure: [sensor_errors_lstm.png](reports/presentation/sensor_errors_lstm.png)
+
+- LSTM-only diagnostic: 696 scored sensors; 20 have no eligible test / targets.
+
+
+**Speaker notes**
+
+The histogram is LSTM-only; saved PatchSTG reports lack paired per-sensor predictions, so no comparative histogram is invented. 696 sensors have at least one eligible target,20none. A few large errors create a right tail. This motivates investigation but does not prove broken sensors or spatial causes. Overall pooled MAE weights forecast pairs, unlike equal weighting of these sensor means.
+
+
+## Slide 19 — A matched forecast connects the numbers to the task
+
+**Section:** Demonstration · **Suggested minutes:** 1.1
+
+**Slide content**
+
+- Figure: [matched_forecast_example.png](reports/presentation/matched_forecast_example.png)
+
+- First replay origin + first sensor, fixed by position—not selected by / forecast quality.
+
+
+**Speaker notes**
+
+This example is sensor 1114091 at the first chronological replay origin, not selected for favorable errors. Show past observations, both forecasts and actual future. The gold future was not an input. Values are cached display-rounded outputs. If time allows, open runs/lstm_patchstg_replay_v1/index.html and change sensor/lead once; otherwise this figure is the offline demo. Do not tune using these test examples.
+
+
+## Slide 20 — What the experiment does—and does not—establish
+
+**Section:** Limitations · **Suggested minutes:** 1.0
+
+**Slide content**
+
+- • One recorded seed and one network; no significance claim.
+
+- • Capacity, spatial inputs, optimizer and search budgets differ.
+
+- • Test period was observed before the contextual redesign.
+
+- • Calendar, sensor pairing and zero semantics remain assumptions.
+
+- Next: multiple seeds, controlled context/spatial ablations and new / evaluation periods.
+
+
+**Speaker notes**
+
+Be explicit: one seed and one network; capacity, spatial information, optimization and tuning history differ. The same test period had already been observed before the contextual redesign. Timestamp/metadata pairing/zero meanings remain assumptions. Do not attribute gains solely to attention or claim significance/scalability. New seeds and controlled ablations are future work, not completed experiments.
+
+
+## Slide 21 — Contextual LSTM is competitive; PatchSTG is more accurate here
+
+**Section:** Conclusion · **Suggested minutes:** 0.7
+
+**Slide content**
+
+- • Both learned models outperform persistence and seasonal / average.
+
+- • PatchSTG MAE 17.19 versus contextual LSTM 18.17.
+
+- • LSTM uses 37.1% of PatchSTG's parameters.
+
+- An observed system-level result—not proof that spatial attention / alone caused the gain.
+
+
+**Speaker notes**
+
+Summarize three findings in your own words. Both learned models beat simple baselines. PatchSTG is the lowest recorded error. Contextual LSTM provides competitive accuracy at lower parameter count; we cannot claim speed superiority. Calendar/capacity were changed together from the small model, so no isolated causal attribution. Invite questions about data leakage, state/shape and attention.
+
+
+## Slide 22 — Sources, implementation and reproducible evidence
+
+**Section:** References · **Suggested minutes:** 0.35
+
+**Slide content**
+
+- Fang et al. | KDD 2025 / Efficient Large-Scale Traffic Forecasting with Transformers: / A Spatial Data Management Perspective / arxiv.org/abs/2412.09972v2
+
+- Liu et al. | NeurIPS 2023 / LargeST: A Benchmark Dataset for Large-Scale Traffic Forecasting / arxiv.org/abs/2306.08259
+
+- Project: github.com/emon109848/PML_PatchSTG_VS_LSTM / Saved evidence: reports/final_comparison/PROJECT_REPORT.md
+
+
+**Speaker notes**
+
+PatchSTG: Yuchen Fang et al., Efficient Large-Scale Traffic Forecasting with Transformers: A Spatial Data Management Perspective, accepted SIGKDD2025, arXiv2412.09972v2. LargeST: Xu Liu et al., LargeST: A Benchmark Dataset for Large-Scale Traffic Forecasting, NeurIPS2023 datasets/benchmarks. Project uses adapted processed SD and a code-aligned PatchSTG implementation; see attribution, pinned source commit and method deviations. URLs are written on the slide for the exported PDF too.
+
+
+## Slide 23 — Questions
+
+**Section:** Discussion · **Suggested minutes:** 0
+
+**Slide content**
+
+- Thank you
 
 - Traffic forecasting with contextual LSTM and PatchSTG
-- Practical Machine Learning
-- Presenter: [Your name]
-- Date: [Presentation date]
 
-**What to say**
 
-“This project compares two approaches for forecasting traffic flow across a network of sensors. The first is a contextual LSTM that processes each sensor's history independently. The second is PatchSTG, which uses spatial attention to exchange information among sensors. I will explain the data, both models, the experiment, and what the results allow us to conclude.”
+**Speaker notes**
 
-## Slide 2 — Motivation
+Thank the audience. Use the detailed deck's appendix to answer tensor-shape, masking, gate, map, optimizer or numerical-check questions. Do not present backup material unless needed.
 
-**Insert on the slide**
 
-- Traffic changes over time and across locations.
-- Accurate short-term forecasts can support traffic management and planning.
-- Recent traffic, recurring calendar patterns, and other locations may all contain useful information.
+## Backup 24 — How overlapping windows move
 
-**Suggested visual:** A simple road map with several sensor markers and a small 3-hour forecast timeline.
+**Section:** Backup · **Suggested minutes:** 0
 
-**What to say**
+**Slide content**
 
-“Traffic at one location varies by time of day and day of week. It may also be related to what is happening at other locations. This makes traffic forecasting a useful problem for comparing a model of individual sensor histories with a model that can exchange information across sensors.”
+- WINDOW 1
 
-## Slide 3 — Research question
+- Input 0–11 / Targets 12–23
 
-**Insert on the slide**
+- WINDOW 2
 
-> How do a contextual LSTM and PatchSTG compare when forecasting the next three hours of traffic flow on the same sensor dataset?
+- Input 1–12 / Targets 13–24
 
-- Shared input history and forecast horizon
-- Matched test windows and scoring mask
-- Persistence and seasonal-average baselines
+- WINDOW 3
 
-**What to say**
+- Input 2–13 / Targets 14–25
 
-“The goal is to compare the recorded forecasting performance of two models under a shared test protocol. Both observe 12 historical steps and predict the next 12. We also compare them with two simple rules to understand how much accuracy comes from recent traffic and regular weekly patterns.”
+- Backup explanation · use only when this detail is relevant to a / question.
 
-## Slide 4 — Dataset
 
-**Insert on the slide**
+**Speaker notes**
 
-| Property | Value |
-|---|---:|
-| Traffic array | `(35,040, 716, 1)` |
-| Time steps | 35,040 |
-| Sensors | 716 |
-| Measured feature | Traffic flow |
-| Assumed interval | 15 minutes |
-| Assumed start | January 1, 2019 |
+Each new forecast uses actual readings available at its forecast time. Earlier target readings can appear as inputs later. Windows in a batch remain independent. Randomly splitting overlapping targets across train and test could leak answers.
 
-**Suggested visual:** A small grid with time as rows and sensors as columns.
 
-**What to say**
+## Backup 25 — Dataset, DataLoader and a batch
 
-“The processed SD array contains one traffic-flow value for each sensor and time step. The project assumes a continuous 15-minute timeline beginning on January 1, 2019. This gives 96 observations per day and 365 days in the array. Timestamp provenance and alignment of sensor columns with metadata remain documented assumptions.”
+**Section:** Backup · **Suggested minutes:** 0
 
-## Slide 5 — One forecasting example
+**Slide content**
 
-**Insert on the slide**
+- DATASET
 
-```text
-Input:  12 observed steps  →  Forecast: 12 future steps
-         3 hours                         3 hours
-```
+- Builds one window / x, y, mask, / target_start
 
-| Example | Input indices | Target indices |
-|---|---|---|
-| Window 1 | 0–11 | 12–23 |
-| Window 2 | 1–12 | 13–24 |
+- DATALOADER
 
-- Stride: one time step
-- One window contains all 716 sensors
+- Stacks four examples / shape (4, 12, 716, 1)
 
-**What to say**
+- TIME ORDER
 
-“Each example uses the last three hours to predict the following three hours. We advance the window by one time step, so consecutive examples overlap. At each forecast origin, the input uses observed readings available at that time. Each model predicts all 12 future steps together.”
+- Training windows / shuffle / steps inside each stay / ordered
 
-## Slide 6 — Array and batch shapes
+- Backup explanation · use only when this detail is relevant to a / question.
 
-**Insert on the slide**
 
-| Data | Shape | Meaning |
-|---|---|---|
-| One window | `(12, 716, 1)` | Time, sensors, flow |
-| Four windows | `(4, 12, 716, 1)` | Batch, time, sensors, flow |
-| Contextual LSTM input | `(4 × 716, 12, 41)` | Sensor sequences, time, features |
+**Speaker notes**
 
-**What to say**
+The dataset uses target start indices to slice the original array on demand. The DataLoader groups examples, keeping inputs, targets and masks aligned. Four is the number of forecast windows in a batch.
 
-“A batch of four means four forecast windows are processed together. The LSTM rearranges the data so each sensor in each window becomes its own sequence. The contextual model has 41 input values per time step after adding calendar and sensor embeddings.”
 
-## Slide 7 — Chronological split and leakage
+## Backup 26 — Normalization: a numerical example
 
-**Insert on the slide**
+**Section:** Backup · **Suggested minutes:** 0
 
-| Split | Target indices | Purpose |
-|---|---|---|
-| Training | 0–21,023 | Fit model parameters |
-| Validation | 21,024–28,031 | Select model and checkpoint |
-| Test | 28,032–35,039 | Score selected model |
+**Slide content**
 
-**Suggested visual:** A timeline divided into 60% training, 20% validation, and 20% test.
+- RAW VALUE
 
-**What to say**
+- 140 traffic-flow units
 
-“We split targets chronologically to reflect forecasting into a later period. For example, the first validation forecast can use the final 12 training observations as history, but all its targets are in validation. Overlapping windows are processed separately. A random split of overlapping windows could place the same target readings into both training and test.”
+- TRAINING STATS
 
-## Slide 8 — Normalization and target mask
+- Mean = 100 / Standard deviation = / 20
 
-**Insert on the slide**
+- MODEL INPUT
 
-```text
-Normalized input = (reading − training mean) / training standard deviation
-```
+- (140 − 100) / 20 = 2
 
-- One global mean and standard deviation, fitted on training readings
-- Training statistics include zero readings
-- Zero targets are excluded from loss and metrics
-- Predictions are evaluated in original traffic-flow units
+- Backup explanation · use only when this detail is relevant to a / question.
 
-**What to say**
 
-“The models receive normalized traffic values using statistics fitted only on training data. We keep the same statistics for validation and test. The project excludes zero targets from scoring, while historical zeros remain in the inputs. A zero could reflect true zero flow or missing data, so this mask is a benchmark convention.”
+**Speaker notes**
 
-## Slide 9 — Baselines
+These numbers are illustrative. The normalized value of 2 means the reading is two training standard deviations above the training mean. A raw value of 80 normalizes to minus one. All splits use the same training statistics.
 
-**Insert on the slide**
 
-| Baseline | Prediction rule |
-|---|---|
-| Persistence | Repeat the last observed value for all 12 steps |
-| Seasonal average | Use the training mean for the same sensor, weekday, and 15-minute slot |
+## Backup 27 — Masking and sensor coverage
 
-**Suggested visual:** One short example showing a last observation of 100 and two seasonal lookup values.
+**Section:** Backup · **Suggested minutes:** 0
 
-**What to say**
+**Slide content**
 
-“Persistence asks whether traffic will stay at the current level. Seasonal average asks what usually happens at this sensor at the forecast weekday and time. Seasonal statistics use nonzero training readings. These baselines help us judge the benefit of the neural models against simple alternatives.”
+- ACTUAL = 30
 
-## Slide 10 — Metrics
+- Prediction = 25 / Included error = 5
 
-**Insert on the slide**
+- ACTUAL = 0
 
-- **MAE:** Average absolute prediction error in traffic-flow units
-- **RMSE:** Square root of the average squared error
-- **MAPE:** Average absolute error as a percentage of the actual value
-- Lower values indicate smaller errors
+- Prediction = 25 / Target excluded
 
-**Suggested visual:** Actual 100, predicted 90 → absolute error 10 and percentage error 10%.
+- COVERAGE
 
-**What to say**
+- 696 scored sensors / 20 have no eligible / test targets
 
-“MAE gives the average size of an error in the original units. RMSE gives larger errors more influence because it squares them before averaging. MAPE expresses error relative to the actual reading. Zero targets are excluded from all three calculations in this project. The overall metrics pool included forecast-target pairs.”
+- Backup explanation · use only when this detail is relevant to a / question.
 
-## Slide 11 — Why start with the small LSTM?
 
-**Insert on the slide**
+**Speaker notes**
 
-- One LSTM layer, 32 hidden units
-- Traffic history only
-- One shared model processes each sensor independently
-- 12 past readings → 12 future predictions
-- Best validation MAE: 41.13 at epoch 49
+The zero mask is applied to actual future targets, not to model predictions. A model prediction of zero is still scored when the actual target is nonzero. Zeros may represent true zero flow or missing values.
 
-**What to say**
 
-“The original small LSTM is a starting point for understanding the recurrent approach. It receives one sensor's traffic history at a time. The same weights are reused for all sensors, with a fresh state for each history. Its validation score was worse than seasonal average, motivating a stronger contextual model.”
+## Backup 28 — MAE, RMSE and MAPE by example
 
-## Slide 12 — How the small LSTM produces a forecast
+**Section:** Backup · **Suggested minutes:** 0
 
-**Insert on the slide**
+**Slide content**
 
-```text
-One sensor: 12 traffic readings
-          ↓ LSTM, 32 hidden units
-Final hidden state: 32 values
-          ↓ linear forecast layer
-12 future traffic values
-```
+- ACTUAL / PREDICTED
 
-**What to say**
+- 100 / 98 and 20 / 28 / Absolute errors 2 and / 8
 
-“The LSTM reads the past values in time order, updating its hidden and cell states at each step. The model keeps the last hidden state as a representation of the history. A linear layer uses its 32 values to produce all 12 forecast values together.”
+- MAE / RMSE
 
-## Slide 13 — Contextual LSTM inputs
+- MAE = 5 / RMSE = 5.83
 
-**Insert on the slide**
+- MAPE
 
-| Input for one sensor at one step | Values |
-|---|---:|
-| Normalized traffic | 1 |
-| Time-of-day embedding | 16 |
-| Weekday embedding | 8 |
-| Sensor ID embedding | 16 |
-| **Total** | **41** |
+- 2% and 40% / Average = 21%
 
-**What to say**
+- Backup explanation · use only when this detail is relevant to a / question.
 
-“The contextual model adds learned representations of time of day, weekday, and sensor identity. An embedding is a table of numbers learned during training. For example, a sensor ID selects a row of 16 learned values. We concatenate these with the traffic value, producing 41 inputs per historical step.”
 
-## Slide 14 — Contextual LSTM architecture
+**Speaker notes**
 
-**Insert on the slide**
+MAE averages absolute errors in the flow units. RMSE squares errors before averaging, so larger errors have greater influence. MAPE divides the absolute error by each nonzero actual target before averaging.
 
-```text
-One sensor: (12 steps, 41 values)
-          ↓ LSTM layer 1, 256 hidden units
-          ↓ LSTM layer 2, 256 hidden units
-Final hidden state: 256 values
-          ↓ linear forecast layer
-12 future values
-```
 
-- Shared parameters across sensors
-- 848,644 trainable parameters
+## Backup 29 — The LSTM state across time
 
-**What to say**
+**Section:** Backup · **Suggested minutes:** 0
 
-“The selected model has two stacked LSTM layers with width 256. The first layer produces a hidden state for each historical step, and the second processes that sequence. A linear head turns the final hidden state into 12 predictions. Sensor IDs allow sensor-specific behavior, while each sensor's observed history is processed independently.”
+**Slide content**
 
-## Slide 15 — What a parameter count tells us
+- STEP 1
 
-**Insert on the slide**
+- Read traffic at t₁ / Update hidden and / cell states
 
-| Model | Trainable parameters |
-|---|---:|
-| Contextual LSTM, width 128 | 234,244 |
-| Contextual LSTM, width 256 | 848,644 |
-| PatchSTG | 2,284,844 |
+- STEP 2
 
-- Parameters are learned weights and biases.
-- Different capacities are one factor in the comparison.
+- Read traffic at t₂ / Use states from step 1
 
-**What to say**
+- STEP 12
 
-“A parameter is a number learned during training. The selected LSTM has roughly 849 thousand parameters, while PatchSTG has about 2.28 million. More parameters give a model a different capacity and computational footprint, so the measured gap cannot be assigned to one architectural feature alone.”
+- Read last observation / Keep final hidden / state
 
-## Slide 16 — PatchSTG overview
+- Backup explanation · use only when this detail is relevant to a / question.
 
-**Insert on the slide**
 
-```text
-Historical traffic + calendar
-       ↓ temporal projection + embeddings
-Sensor representations
-       ↓ arrange into spatial patches
-5 blocks: depth attention → breadth attention
-       ↓ restore original sensor order
-12-step forecast per sensor
-```
+**Speaker notes**
 
-**What to say**
+For one sensor, the LSTM reads 12 values in order. The cell state carries information along the sequence. Gates regulate what is retained, added and exposed. Each window and sensor sequence begins with fresh states.
 
-“PatchSTG starts by representing each sensor's recent traffic and context. It arranges those representations into patches, then uses attention inside and across patches. After five blocks, it restores the original sensor order and predicts 12 future values for each sensor.”
 
-## Slide 17 — PatchSTG input projection
+## Backup 30 — One shared LSTM for 716 sensors
 
-**Insert on the slide**
+**Section:** Backup · **Suggested minutes:** 0
 
-| Part of one sensor's representation | Values |
-|---|---:|
-| Projection of 12 steps × 3 channels | 64 |
-| Last historical time-slot embedding | 32 |
-| Last historical weekday embedding | 32 |
-| Sensor embedding | 64 |
-| **Total per sensor** | **192** |
+**Slide content**
 
-The three projected channels are normalized traffic, numeric time of day, and numeric weekday.
+- INPUT
 
-**What to say**
+- One window / (12, 716, 1)
 
-“For each sensor, the temporal projection combines all 12 historical steps and their three channels into 64 values. PatchSTG concatenates those with learned embeddings for the final historical time, weekday, and sensor identity. The result is a 192-value representation for each sensor.”
+- REARRANGE
 
-## Slide 18 — Spatial patches and padding
+- 716 independent / sequences / each (12, 1)
 
-**Insert on the slide**
+- SHARED MODEL
 
-- Coordinates recursively partition the sensors.
-- Training-derived traffic similarity selects extra positions.
-- 716 original sensors → 1,024 positions
-- 16 patches × 64 positions
-- Repeated positions are restored to one output per original sensor.
+- Same LSTM weights / fresh states per / sequence
 
-**Suggested visual:** A toy grid of two patches with a repeated sensor highlighted as padding.
+- Backup explanation · use only when this detail is relevant to a / question.
 
-**What to say**
 
-“The preparation code recursively splits sensors using latitude and longitude. Similarity calculated from training traffic helps choose sensors for padding. The final layout has 16 patches of 64 positions. Extra positions repeat sensors, and a saved mapping later retrieves one representation for each original sensor.”
+**Speaker notes**
 
-## Slide 19 — What attention computes
+The project does not train 716 separate LSTMs. Each sensor history passes through the same learned model. Within this model, one sensor’s current readings do not enter another sensor’s sequence.
 
-**Insert on the slide**
 
-```text
-Sensor representation → Query, Key, Value
+## Backup 31 — How a linear layer predicts 12 values
 
-Scores  = Query × Keyᵀ / √192
-Weights = softmax(scores)
-Result  = Weights × Value
-```
+**Section:** Backup · **Suggested minutes:** 0
 
-- One attention head
-- Query, Key, and Value each have width 192
+**Slide content**
 
-**What to say**
+- INPUT
 
-“A learned projection produces a query, key, and value for each position. A query is compared with the keys in its attention group. Scaling and softmax turn the scores into weights. The weights combine the value vectors, producing an updated vector for each querying position. The attention weights describe information exchange within this model.”
+- Final hidden state / 32 values for small / LSTM
 
-## Slide 20 — Depth attention within one patch
+- ONE FORECAST
 
-**Insert on the slide**
+- 32 weights + one bias / combine all 32 values
 
-```text
-64 positions × 192 values
-Queries × Keys → 64 × 64 scores
-Attention weights × Values → 64 × 192 results
-```
+- OUTPUT
 
-**Suggested visual:** One patch with one highlighted query connected to the 64 positions.
+- 12 sets of weights / produce 12 forecast / steps
 
-**What to say**
+- Backup explanation · use only when this detail is relevant to a / question.
 
-“In depth attention, every position in one patch can attend to every position in that patch. One query gets 64 scores and uses the resulting weights to combine 64 value vectors into one 192-value result. All 64 queries do this, so the patch retains 64 updated representations.”
 
-## Slide 21 — Breadth attention across patches
+**Speaker notes**
 
-**Insert on the slide**
+For each forecast time, a linear layer multiplies each of the 32 hidden values by its learned weight and sums them with a bias. The 12 outputs are generated together. The contextual LSTM uses 256 hidden values at its selected width.
 
-```text
-Patch 0, position 5  ↔  Patch 1, position 5  ↔ … ↔ Patch 15, position 5
-```
 
-- Compare the same position across 16 patches.
-- Depth attention happens first.
-- Repeat for all 64 position numbers.
+## Backup 32 — Contextual LSTM: how 41 is formed
 
-**What to say**
+**Section:** Backup · **Suggested minutes:** 0
 
-“Breadth attention groups the same position number across the 16 patches. Those positions are not guaranteed to represent especially similar sensors. Depth attention happens first, so a position can already contain information from other positions in its patch. Breadth can then carry that information between patches. This two-stage structure is repeated in five blocks.”
+**Slide content**
 
-## Slide 22 — Restore and forecast
+- TRAFFIC
 
-**Insert on the slide**
+- 1 normalized reading
 
-```text
-After five blocks: (16, 64, 192)
-         ↓ restore map
-Original sensor order: (716, 192)
-         ↓ shared forecast projection
-12 predictions per sensor
-```
+- CALENDAR
 
-**What to say**
+- 16 time-of-day values / 8 weekday values
 
-“The restore map records the patch position to retrieve for each original sensor. After the attention blocks, the model selects those 716 representations in original sensor order. A shared forecast head converts each 192-value representation into 12 future predictions. Evaluation converts the normalized forecasts back to original traffic units.”
+- SENSOR ID
 
-## Slide 23 — Model comparison
+- 16 learned values / reused across 12 steps
 
-**Insert on the slide**
+- Backup explanation · use only when this detail is relevant to a / question.
 
-| Aspect | Contextual LSTM | PatchSTG |
-|---|---|---|
-| Historical traffic | 12 steps per sensor | 12 steps per sensor |
-| Calendar and sensor identity | Learned embeddings | Numeric calendar inputs and learned embeddings |
-| Sensor interaction | Independent histories | Depth and breadth spatial attention |
-| Parameters | 848,644 | 2,284,844 |
-| Optimizer | Adam | AdamW |
 
-**What to say**
+**Speaker notes**
 
-“Both models use traffic history, calendar context, and sensor identity. The LSTM shares its learned weights but processes sensor histories independently. PatchSTG can exchange information across sensor positions. They also differ in parameter count and optimization, which matters when interpreting their test scores.”
+At one sensor and one historical time step, the model concatenates 1 plus 16 plus 8 plus 16 values. For 12 past steps, one sensor has shape 12 by 41. Sensor identity is learned context and supplies no other sensor’s current traffic readings.
 
-## Slide 24 — Training and validation
 
-**Insert on the slide**
+## Backup 33 — LSTM tensor shapes through the model
 
-```text
-Predict → masked MAE loss → backpropagation → optimizer update
-                     ↓
-          Validation after each epoch
-                     ↓
-          Select lowest validation MAE
-```
+**Section:** Backup · **Suggested minutes:** 0
 
-| Setting | Contextual LSTM | PatchSTG |
-|---|---|---|
-| Completed epochs | 50 per candidate | 50 |
-| Batch size | 4 | 4 |
-| Optimizer | Adam, learning rate 0.001 | AdamW, initial learning rate 0.002 with schedule |
-| Seed | 2023 | 2023 |
+**Slide content**
 
-**What to say**
+- BATCH
 
-“Training updates weights using masked absolute error. Validation evaluates the weights without an optimizer update at the end of each epoch. The two models used the same batch size and epoch count, but their optimizers and schedules differed. Equal epochs do not imply equal computation or tuning effort.”
+- (4, 12, 716, 41)
 
-## Slide 25 — LSTM model selection
+- SENSOR SEQUENCES
 
-**Insert on the slide**
+- (4 × 716, 12, 41) / = (2,864, 12, 41)
 
-| Width | Parameters | Best epoch | Validation MAE |
-|---|---:|---:|---:|
-| 128 | 234,244 | 39 | 15.3385 |
-| 256 | 848,644 | 37 | **15.0656** |
+- FORECAST
 
-- Width 256, epoch 37 selected by validation MAE
-- Width 384 was incomplete and deferred
+- (4, 12, 716, 1) / 12 future steps
 
-**What to say**
+- Backup explanation · use only when this detail is relevant to a / question.
 
-“Both completed contextual candidates trained for 50 epochs. The width-256 candidate had the lower best validation MAE, at epoch 37, so those weights were chosen for the test evaluation. The original width-384 candidate was not completed and was deferred before the contextual test pass.”
 
-## Slide 26 — Learning curves
+**Speaker notes**
 
-**Insert on the slide**
+The axes are permuted so each sensor in each window is a separate sequence. The batch and sensor axes are combined, the two LSTM layers process each sequence, and the head produces 12 future values. The model restores time and sensor axes.
 
-- [LSTM learning curves](reports/final_comparison/learning_curves.png)
-- Left panel: training MAE
-- Right panel: validation MAE and selected epochs
 
-**What to say**
+## Backup 34 — How we count trainable parameters
 
-“The curves show how the two LSTM candidates' errors changed across epochs. The validation panel uses each completed epoch's fixed weights. Training MAE pools predictions made while weights are changing, so interpret the two panels accordingly. Both final-epoch validation errors were above their respective best values, which supports choosing a validation checkpoint.”
+**Section:** Backup · **Suggested minutes:** 0
 
-**Preparation note:** This figure contains the LSTM candidates. The saved PatchSTG summary records its best validation score, but the full epoch history is absent from this checkout.
+**Slide content**
 
-## Slide 27 — Frozen test evaluation
+- LSTM 256
 
-**Insert on the slide**
+- Embeddings 13,048 / LSTM layers 832,512 / Head 3,084
 
-- Select the LSTM checkpoint using validation.
-- Load selected weights and score test windows without weight updates.
-- Check checkpoint identity and confirm it stays unchanged.
-- Reuse the saved PatchSTG test evaluation.
+- PATCHSTG
 
-**What to say**
+- Projection 2,368 / Embeddings 49,120 / 5 blocks 2,231,040 / Head 2,316
 
-“The contextual LSTM evaluator loads the chosen epoch-37 checkpoint, reproduces the validation score, and performs a frozen test pass. It checks model and checkpoint integrity. The PatchSTG result comes from the completed saved run and evaluation. It was not rerun for this comparison.”
+- TOTALS
 
-## Slide 28 — Overall test results
+- LSTM 848,644 / PatchSTG 2,284,844
 
-**Insert on the slide**
+- Backup explanation · use only when this detail is relevant to a / question.
 
-| Model | MAE | RMSE | MAPE |
-|---|---:|---:|---:|
-| Persistence | 60.7825 | 94.3350 | 41.7801% |
-| Seasonal average | 28.0045 | 53.3906 | 19.9964% |
-| Contextual LSTM 256 | 18.1696 | 31.9485 | 12.0646% |
-| PatchSTG | **17.1943** | **29.1370** | **11.1706%** |
 
-6,997 matching test windows and 58,158,396 included forecast-target pairs.
+**Speaker notes**
 
-**What to say**
+A trainable parameter is one learned weight or bias. Count the elements in all trainable tensors and add them. The 256-unit LSTM’s two recurrent layers have 306,176 and 526,336 parameters. Fixed gather and restore indices are buffers, not trainable parameters.
 
-“Both neural models outperform the two baselines in this recorded test. PatchSTG has the lowest value for all three metrics. Its MAE is about 0.98 traffic-flow units lower than the contextual LSTM's. The LSTM's MAE is approximately 5.67% higher when expressed relative to PatchSTG's MAE.”
 
-## Slide 29 — Forecast distance
+## Backup 35 — PatchSTG: project one sensor history
 
-**Insert on the slide**
+**Section:** Backup · **Suggested minutes:** 0
 
-- [Test MAE by forecast lead](reports/final_comparison/test_horizons.png)
-- Horizontal axis: 15 to 180 minutes ahead
-- Vertical axis: test MAE
+**Slide content**
 
-| Lead | Contextual LSTM MAE | PatchSTG MAE |
-|---|---:|---:|
-| 15 minutes | 12.62 | 11.81 |
-| 180 minutes | 22.11 | 20.84 |
+- INPUT
 
-**What to say**
+- 12 time steps × 3 / values / traffic, slot and / weekday
 
-“This graph separates errors by how far ahead the model predicts. Both neural models have larger errors at the three-hour lead than at 15 minutes. PatchSTG is lower at all 12 leads in the saved results. Persistence becomes much less accurate with distance, while the seasonal-average curve is nearly flat.”
+- PROJECTION
 
-## Slide 30 — Sensor variation and coverage
+- 36 inputs → 64 / outputs / learned weights and / biases
 
-**Insert on the slide**
+- ADD CONTEXT
 
-- [LSTM sensor-error histogram](reports/final_comparison/sensor_errors.png)
-- 696 sensors have at least one included test target.
-- 20 sensors have no eligible targets and no reported MAE.
+- 64 + 32 + 32 + 64 / = 192 values
 
-**What to say**
+- Backup explanation · use only when this detail is relevant to a / question.
 
-“The overall MAE combines many forecasts, but performance differs across sensors. This histogram shows the distribution of individual sensor MAEs for the selected LSTM. It does not establish why some sensors are harder to forecast, and the saved comparison lacks matching PatchSTG per-sensor forecasts.”
 
-## Slide 31 — Reliability and limitations
+**Speaker notes**
 
-**Insert on the slide**
+The temporal convolution uses all three channels and 12 historical positions. It creates 64 values per sensor. The model concatenates time-slot and weekday embeddings for the last historical step and a sensor embedding to obtain a 192-value vector.
 
-- One recorded seed and one network
-- Different capacities, optimizers, and model-selection effort
-- Test period had been observed before the contextual redesign
-- Timestamp, sensor alignment, and zero-mask assumptions
-- No controlled timing comparison or spatial-attention ablation
 
-**What to say**
+## Backup 36 — From one sensor to Query, Key and Value
 
-“The result describes this particular recorded experiment. Model size, spatial inputs, optimization, and tuning differ, so we cannot attribute the gap specifically to attention. The test period had been observed before the later contextual redesign, which limits its independence. Metadata ordering, timestamps, and the interpretation of zeros also remain assumptions. We did not establish statistical significance or controlled speed differences.”
+**Section:** Backup · **Suggested minutes:** 0
 
-## Slide 32 — Conclusions and future work
+**Slide content**
 
-**Insert on the slide**
+- SENSOR 5
 
-- Both learned models beat persistence and seasonal average.
-- PatchSTG achieved test MAE **17.19**; contextual LSTM achieved **18.17**.
-- PatchSTG can combine information from sensor positions.
-- Future work: multiple seeds, controlled ablations, and additional datasets.
+- Representation / (1, 192)
 
-**What to say**
+- LINEAR LAYER
 
-“The contextual LSTM and PatchSTG both improved substantially over the simple baselines on this test. PatchSTG achieved the lower recorded error. Multiple seeds and controlled experiments that change one factor at a time would help assess reliability and the contribution of spatial information.”
+- 192 inputs → 576 / outputs / learned weights and / biases
 
-## Slide 33 — Questions
+- SPLIT
 
-**Insert on the slide**
+- Query (1, 192) / Key (1, 192) / Value (1, 192)
 
-> Thank you. Questions?
+- Backup explanation · use only when this detail is relevant to a / question.
 
-**What to say**
 
-“Thank you for listening. I welcome questions about the data, model design, evaluation, or limitations.”
+**Speaker notes**
 
-## Optional backup — Sources and implementation
+A single learned linear layer creates all three vectors together. Each of its 576 output numbers is a weighted sum of the 192 input values plus a bias. Splitting the output gives one query, key and value vector of width 192.
 
-**Insert on the slide**
 
-- [Final results and limitations](reports/final_comparison/PROJECT_REPORT.md)
-- [Contextual LSTM implementation](src/traffic_prediction/context_lstm.py)
-- [PatchSTG implementation](src/traffic_benchmark/models/patchstg.py)
-- [Spatial patch preparation](src/traffic_benchmark/data/spatial.py)
-- [PatchSTG training configuration](configs/patchstg_sd_50epochs.json)
-- [Third-party attribution](THIRD_PARTY_NOTICES.md)
+## Backup 37 — One query scores 64 keys
 
-**What to say**
+**Section:** Backup · **Suggested minutes:** 0
 
-“These files document the implementation, experiment configuration, saved results, and third-party attribution.”
+**Slide content**
 
+- SENSOR 5 QUERY
 
-## Detailed lesson slides
+- Shape (1, 192)
 
-These supplementary slides expand the lesson explanations and can be selected or removed when preparing the 20-minute version.
+- 64 KEYS
 
-### Detail 1 — How overlapping windows move
+- Shape (64, 192) / transpose to (192, 64)
 
-**Insert on the slide**
+- SCORES
 
-- **WINDOW 1** — Input 0–11; Targets 12–23
+- (1, 192) × (192, 64) / = (1, 64)
 
-- **WINDOW 2** — Input 1–12; Targets 13–24
+- Backup explanation · use only when this detail is relevant to a / question.
 
-- **WINDOW 3** — Input 2–13; Targets 14–25
 
+**Speaker notes**
 
-**What to say**
+The query at one position is compared with every key in its patch, including its own. Each score is a dot product. With all 64 queries, the scores form a 64 by 64 matrix. Each row is one query’s scores.
 
-“Each new forecast uses actual readings available at its forecast time. Earlier target readings can appear as inputs later. Windows in a batch remain independent. Randomly splitting overlapping targets across train and test could leak answers.”
 
-### Detail 2 — Dataset, DataLoader and a batch
+## Backup 38 — Scaling and softmax: numerical example
 
-**Insert on the slide**
+**Section:** Backup · **Suggested minutes:** 0
 
-- **DATASET** — Builds one window; x, y, mask, target_start
+**Slide content**
 
-- **DATALOADER** — Stacks four examples; shape (4, 12, 716, 1)
+- DOT PRODUCTS
 
-- **TIME ORDER** — Training windows shuffle; steps inside each stay ordered
+- Query [1, 2] / Keys [1, 0] and [0, 1] / Scores = 1 and 2
 
+- SCALE
 
-**What to say**
+- Divide by √2 / ≈ 0.71 and 1.41
 
-“The dataset uses target start indices to slice the original array on demand. The DataLoader groups examples, keeping inputs, targets and masks aligned. Four is the number of forecast windows in a batch.”
+- SOFTMAX
 
-### Detail 3 — Normalization: a numerical example
+- Weights ≈ 0.33 and / 0.67 / The two weights sum / to 1
 
-**Insert on the slide**
+- Backup explanation · use only when this detail is relevant to a / question.
 
-- **RAW VALUE** — 140 traffic-flow units
 
-- **TRAINING STATS** — Mean = 100; Standard deviation = 20
+**Speaker notes**
 
-- **MODEL INPUT** — (140 − 100) / 20 = 2
+This is a two-dimensional teaching example. Actual queries and keys have width 192 and are divided by the square root of 192. Softmax is applied across the keys for each query, turning its scores into attention weights.
 
 
-**What to say**
+## Backup 39 — Where the Value vectors are added
 
-“These numbers are illustrative. The normalized value of 2 means the reading is two training standard deviations above the training mean. A raw value of 80 normalizes to minus one. All splits use the same training statistics.”
+**Section:** Backup · **Suggested minutes:** 0
 
-### Detail 4 — Masking and sensor coverage
+**Slide content**
 
-**Insert on the slide**
+- WEIGHT VALUES
 
-- **ACTUAL = 30** — Prediction = 25; Included error = 5
+- 0.33 × [3, 0] = [0.99, / 0] / 0.67 × [0, 6] = [0, / 4.02]
 
-- **ACTUAL = 0** — Prediction = 25; Target excluded
+- SUM COLUMNS
 
-- **COVERAGE** — 696 scored sensors; 20 have no eligible test targets
+- [0.99, 0] + [0, 4.02] / = [0.99, 4.02]
 
+- PROJECT SHAPES
 
-**What to say**
+- One query: (1, 64) × / (64, 192) / All queries: (64, 64) × / (64, 192)
 
-“The zero mask is applied to actual future targets, not to model predictions. A model prediction of zero is still scored when the actual target is nonzero. Zeros may represent true zero flow or missing values.”
+- Backup explanation · use only when this detail is relevant to a / question.
 
-### Detail 5 — MAE, RMSE and MAPE by example
 
-**Insert on the slide**
+**Speaker notes**
 
-- **ACTUAL / PREDICTED** — 100 / 98 and 20 / 28; Absolute errors 2 and 8
+Each query has its own set of weights. For one query, multiply every Value vector by its corresponding weight and add down each feature column. One query gives one 192-value result. The 64 queries therefore give 64 such results. Values are independently projected from input representations, not produced by attention scores.
 
-- **MAE / RMSE** — MAE = 5; RMSE = 5.83
 
-- **MAPE** — 2% and 40%; Average = 21%
+## Backup 40 — Inside one PatchSTG block
 
+**Section:** Backup · **Suggested minutes:** 0
 
-**What to say**
+**Slide content**
 
-“MAE averages absolute errors in the flow units. RMSE squares errors before averaging, so larger errors have greater influence. MAPE divides the absolute error by each nonzero actual target before averaging.”
+- DEPTH
 
-### Detail 6 — The LSTM state across time
+- Attention over 64 / positions / within each patch
 
-**Insert on the slide**
+- RESIDUAL + MLP
 
-- **STEP 1** — Read traffic at t₁; Update hidden and cell states
+- Normalize, attend, add / normalize, feed / forward, add
 
-- **STEP 2** — Read traffic at t₂; Use states from step 1
+- BREADTH
 
-- **STEP 12** — Read last observation; Keep final hidden state
+- Attention over 16 / patches / at the same position
 
+- Backup explanation · use only when this detail is relevant to a / question.
 
-**What to say**
 
-“For one sensor, the LSTM reads 12 values in order. The cell state carries information along the sequence. Gates regulate what is retained, added and exposed. Each window and sensor sequence begins with fresh states.”
+**Speaker notes**
 
-### Detail 7 — One shared LSTM for 716 sensors
+Each attention stage uses normalization, attention with a residual addition, then a feed-forward network with another residual addition. Depth occurs before breadth. A position can therefore carry information gathered from its patch into the breadth stage. The block is repeated five times with separate learned parameters.
 
-**Insert on the slide**
 
-- **INPUT** — One window; (12, 716, 1)
+## Backup 41 — Restore original sensor order
 
-- **REARRANGE** — 716 independent sequences; each (12, 1)
+**Section:** Backup · **Suggested minutes:** 0
 
-- **SHARED MODEL** — Same LSTM weights; fresh states per sequence
+**Slide content**
 
+- PATCH LAYOUT
 
-**What to say**
+- 16 × 64 positions / includes repeated / sensors
 
-“The project does not train 716 separate LSTMs. Each sensor history passes through the same learned model. Within this model, one sensor’s current readings do not enter another sensor’s sequence.”
+- RESTORE MAP
 
-### Detail 8 — How a linear layer predicts 12 values
+- One saved position / for each original / sensor
 
-**Insert on the slide**
+- FORECAST
 
-- **INPUT** — Final hidden state; 32 values for small LSTM
+- 716 representations × / 192 / → 12 predictions per / sensor
 
-- **ONE FORECAST** — 32 weights + one bias; combine all 32 values
+- Backup explanation · use only when this detail is relevant to a / question.
 
-- **OUTPUT** — 12 sets of weights; produce 12 forecast steps
 
+**Speaker notes**
 
-**What to say**
+The map is constructed before attention and records the designated original position for each sensor. After the fifth block, the model gathers those 716 positions in original sensor order. It does not average all repeated positions. The shared forecast head converts each 192-value representation to 12 normalized predictions.
 
-“For each forecast time, a linear layer multiplies each of the 32 hidden values by its learned weight and sums them with a bias. The 12 outputs are generated together. The contextual LSTM uses 256 hidden values at its selected width.”
 
-### Detail 9 — Contextual LSTM: how 41 is formed
+## Backup 42 — Best checkpoint and latest checkpoint
 
-**Insert on the slide**
+**Section:** Backup · **Suggested minutes:** 0
 
-- **TRAFFIC** — 1 normalized reading
+**Slide content**
 
-- **CALENDAR** — 16 time-of-day values; 8 weekday values
+- BEST CHECKPOINT
 
-- **SENSOR ID** — 16 learned values; reused across 12 steps
+- Lowest validation MAE / used for evaluation
 
+- LATEST CHECKPOINT
 
-**What to say**
+- Latest weights + / Adam state / used to resume / training
 
-“At one sensor and one historical time step, the model concatenates 1 plus 16 plus 8 plus 16 values. For 12 past steps, one sensor has shape 12 by 41. Sensor identity is learned context and supplies no other sensor’s current traffic readings.”
+- PROJECT SELECTION
 
-### Detail 10 — LSTM tensor shapes through the model
+- 256 units, epoch 37 / validation MAE / 15.0656
 
-**Insert on the slide**
+- Backup explanation · use only when this detail is relevant to a / question.
 
-- **BATCH** — (4, 12, 716, 41)
 
-- **SENSOR SEQUENCES** — (4 × 716, 12, 41); = (2,864, 12, 41)
+**Speaker notes**
 
-- **FORECAST** — (4, 12, 716, 1); 12 future steps
+Best and latest checkpoints answer different needs. If training stops after epoch 40 with the best validation score at epoch 37, resume from the latest state but evaluate the validation-selected weights from epoch 37.
 
 
-**What to say**
+## Backup 43 — Interpreting the error graphs
 
-“The axes are permuted so each sensor in each window is a separate sequence. The batch and sensor axes are combined, the two LSTM layers process each sequence, and the head produces 12 future values. The model restores time and sensor axes.”
+**Section:** Backup · **Suggested minutes:** 0
 
-### Detail 11 — How we count trainable parameters
+**Slide content**
 
-**Insert on the slide**
+- FORECAST DISTANCE
 
-- **LSTM 256** — Embeddings 13,048; LSTM layers 832,512; Head 3,084
+- Each point pools a / single lead / 15 to 180 minutes / ahead
 
-- **PATCHSTG** — Projection 2,368; Embeddings 49,120; 5 blocks 2,231,040; Head 2,316
+- SENSOR VARIATION
 
-- **TOTALS** — LSTM 848,644; PatchSTG 2,284,844
+- Histogram of LSTM / sensor MAEs / 696 sensors with valid / targets
 
+- OVERALL MAE
 
-**What to say**
+- Pools all eligible / forecast–target / pairs across sensors / and leads
 
-“A trainable parameter is one learned weight or bias. Count the elements in all trainable tensors and add them. The 256-unit LSTM’s two recurrent layers have 306,176 and 526,336 parameters. Fixed gather and restore indices are buffers, not trainable parameters.”
+- Backup explanation · use only when this detail is relevant to a / question.
 
-### Detail 12 — PatchSTG: project one sensor history
 
-**Insert on the slide**
+**Speaker notes**
 
-- **INPUT** — 12 time steps × 3 values; traffic, slot and weekday
+The forecast-distance plot reveals how accuracy changes with the prediction horizon. The sensor histogram shows variation for the selected LSTM only. Overall pooled MAE weights each included forecast-target pair equally, so it is not generally the simple average of per-sensor MAEs.
 
-- **PROJECTION** — 36 inputs → 64 outputs; learned weights and biases
 
-- **ADD CONTEXT** — 64 + 32 + 32 + 64; = 192 values
+## Backup 44 — GPU checks and numerical precision
 
+**Section:** Backup · **Suggested minutes:** 0
 
-**What to say**
+**Slide content**
 
-“The temporal convolution uses all three channels and 12 historical positions. It creates 64 values per sensor. The model concatenates time-slot and weekday embeddings for the last historical step and a sensor embedding to obtain a 192-value vector.”
+- DEVICE
 
-### Detail 13 — From one sensor to Query, Key and Value
+- Move model and batch / tensors / to compatible devices
 
-**Insert on the slide**
+- PARITY
 
-- **SENSOR 5** — Representation; (1, 192)
+- Compare isolated and / batched / inputs and outputs
 
-- **LINEAR LAYER** — 192 inputs → 576 outputs; learned weights and biases
+- TIMING
 
-- **SPLIT** — Query (1, 192); Key (1, 192); Value (1, 192)
+- Warm up and / synchronize / measure the defined / scope
 
+- Backup explanation · use only when this detail is relevant to a / question.
 
-**What to say**
 
-“A single learned linear layer creates all three vectors together. Each of its 576 output numbers is a weighted sum of the 192 input values plus a bias. Splitting the output gives one query, key and value vector of width 192.”
+**Speaker notes**
 
-### Detail 14 — One query scores 64 keys
-
-**Insert on the slide**
-
-- **SENSOR 5 QUERY** — Shape (1, 192)
-
-- **64 KEYS** — Shape (64, 192); transpose to (192, 64)
-
-- **SCORES** — (1, 192) × (192, 64); = (1, 64)
-
-
-**What to say**
-
-“The query at one position is compared with every key in its patch, including its own. Each score is a dot product. With all 64 queries, the scores form a 64 by 64 matrix. Each row is one query’s scores.”
-
-### Detail 15 — Scaling and softmax: numerical example
-
-**Insert on the slide**
-
-- **DOT PRODUCTS** — Query [1, 2]; Keys [1, 0] and [0, 1]; Scores = 1 and 2
-
-- **SCALE** — Divide by √2; ≈ 0.71 and 1.41
-
-- **SOFTMAX** — Weights ≈ 0.33 and 0.67; The two weights sum to 1
-
-
-**What to say**
-
-“This is a two-dimensional teaching example. Actual queries and keys have width 192 and are divided by the square root of 192. Softmax is applied across the keys for each query, turning its scores into attention weights.”
-
-### Detail 16 — Where the Value vectors are added
-
-**Insert on the slide**
-
-- **WEIGHT VALUES** — 0.33 × [3, 0] = [0.99, 0]; 0.67 × [0, 6] = [0, 4.02]
-
-- **SUM COLUMNS** — [0.99, 0] + [0, 4.02]; = [0.99, 4.02]
-
-- **PROJECT SHAPES** — One query: (1, 64) × (64, 192); All queries: (64, 64) × (64, 192)
-
-
-**What to say**
-
-“Each query has its own set of weights. For one query, multiply every Value vector by its corresponding weight and add down each feature column. One query gives one 192-value result. The 64 queries therefore give 64 such results.”
-
-### Detail 17 — Inside one PatchSTG block
-
-**Insert on the slide**
-
-- **DEPTH** — Attention over 64 positions; within each patch
-
-- **RESIDUAL + MLP** — Normalize, attend, add; normalize, feed forward, add
-
-- **BREADTH** — Attention over 16 patches; at the same position
-
-
-**What to say**
-
-“Each attention stage uses normalization, attention with a residual addition, then a feed-forward network with another residual addition. Depth occurs before breadth. A position can therefore carry information gathered from its patch into the breadth stage. The block is repeated five times with separate learned parameters.”
-
-### Detail 18 — Restore original sensor order
-
-**Insert on the slide**
-
-- **PATCH LAYOUT** — 16 × 64 positions; includes repeated sensors
-
-- **RESTORE MAP** — One saved position; for each original sensor
-
-- **FORECAST** — 716 representations × 192; → 12 predictions per sensor
-
-
-**What to say**
-
-“The map is constructed before attention and records the designated original position for each sensor. After the fifth block, the model gathers those 716 positions in original sensor order. It does not average all repeated positions. The shared forecast head converts each 192-value representation to 12 normalized predictions.”
-
-### Detail 19 — Best checkpoint and latest checkpoint
-
-**Insert on the slide**
-
-- **BEST CHECKPOINT** — Lowest validation MAE; used for evaluation
-
-- **LATEST CHECKPOINT** — Latest weights + Adam state; used to resume training
-
-- **PROJECT SELECTION** — 256 units, epoch 37; validation MAE 15.0656
-
-
-**What to say**
-
-“Best and latest checkpoints answer different needs. If training stops after epoch 40 with the best validation score at epoch 37, resume from the latest state but evaluate the validation-selected weights from epoch 37.”
-
-### Detail 20 — Interpreting the error graphs
-
-**Insert on the slide**
-
-- **FORECAST DISTANCE** — Each point pools a single lead; 15 to 180 minutes ahead
-
-- **SENSOR VARIATION** — Histogram of LSTM sensor MAEs; 696 sensors with valid targets
-
-- **OVERALL MAE** — Pools all eligible forecast–target; pairs across sensors and leads
-
-
-**What to say**
-
-“The forecast-distance plot reveals how accuracy changes with the prediction horizon. The sensor histogram shows variation for the selected LSTM only. Overall pooled MAE weights each included forecast-target pair equally, so it is not generally the simple average of per-sensor MAEs.”
-
-### Detail 21 — GPU checks and numerical precision
-
-**Insert on the slide**
-
-- **DEVICE** — Move model and batch tensors; to compatible devices
-
-- **PARITY** — Compare isolated and batched; inputs and outputs
-
-- **TIMING** — Warm up and synchronize; measure the defined scope
-
-
-**What to say**
-
-“The contextual probe checks the recurrent inputs exactly and compares outputs within tolerance. Floating point calculations can differ slightly across execution layouts. An early 256-width probe failed and the revised explicit FP32 check passed. A warmed repeated-batch timing omits other full-epoch work.”
+The contextual probe checks the recurrent inputs exactly and compares outputs within tolerance. Floating point calculations can differ slightly across execution layouts. An early 256-width probe failed and the revised explicit FP32 check passed. A warmed repeated-batch timing omits other full-epoch work.

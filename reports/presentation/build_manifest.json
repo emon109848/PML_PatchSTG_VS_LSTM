@@ -1,0 +1,36 @@
+{
+  "main_slides": 23,
+  "detailed_slides": 44,
+  "backup_slides": 21,
+  "estimated_speaking_minutes": 21.1,
+  "curves": [
+    "LSTM 128",
+    "LSTM 256",
+    "PatchSTG"
+  ],
+  "data_sources": {
+    "128": {
+      "path": "runs/context_lstm_suite_v1/hidden_128/report.json",
+      "sha256": "ff4e7b540aeb8e66f4a7fb65c7c65faca1488c2679257191e103904a1615d795"
+    },
+    "256": {
+      "path": "runs/context_lstm_suite_v1/hidden_256/report.json",
+      "sha256": "3ce67dc0b22f1b438b44fd90d930a22c47e8cd5d47a687be79cbafd2f5fd23bb"
+    },
+    "patchstg": {
+      "path": "runs/patchstg_sd_seed2023_50ep/report.json",
+      "sha256": "762208ba23f6719ab3852eec6d12c8b83b2f80b15e0256d432197ffac0d90791"
+    }
+  },
+  "models_executed": false,
+  "checkpoints_modified": false,
+  "original_backup": "temp/presentation_before_review_2026-11-21",
+  "rebuild": "python scripts/build_presentation.py",
+  "preview_note": "Source-layout renders with DejaVu Sans; editable PowerPoint text uses Arial. Not an actual PowerPoint engine render.",
+  "outputs": {
+    "presentation.pptx": "f729921a8193734529fd2365de14872e9c2404f71bbea372abaf255b68350a95",
+    "presentation_detailed.pptx": "30b7cd9c222d58de438e045213659ea7ad6f4075e9824df60fb5f5e5847594f8",
+    "presentation.pdf": "ba3877b8dd2eb60d5940a3e1220a954991772208a8f8730342f9802e87b99eac",
+    "presentation.md": "042c231a95d65ceb5c8b8db434df9d5df2d180ad016a8fbd43d6ab9841f8a842"
+  }
+}

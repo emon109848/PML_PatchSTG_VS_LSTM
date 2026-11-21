@@ -1,0 +1,254 @@
+[
+  {
+    "title": "How overlapping windows move",
+    "items": [
+      "WINDOW 1",
+      "Input 0\u201311\nTargets 12\u201323",
+      "WINDOW 2",
+      "Input 1\u201312\nTargets 13\u201324",
+      "WINDOW 3",
+      "Input 2\u201313\nTargets 14\u201325"
+    ],
+    "notes": "Each new forecast uses actual readings available at its forecast time. Earlier target readings can appear as inputs later. Windows in a batch remain independent. Randomly splitting overlapping targets across train and test could leak answers."
+  },
+  {
+    "title": "Dataset, DataLoader and a batch",
+    "items": [
+      "DATASET",
+      "Builds one window\nx, y, mask, target_start",
+      "DATALOADER",
+      "Stacks four examples\nshape (4, 12, 716, 1)",
+      "TIME ORDER",
+      "Training windows shuffle\nsteps inside each stay ordered"
+    ],
+    "notes": "The dataset uses target start indices to slice the original array on demand. The DataLoader groups examples, keeping inputs, targets and masks aligned. Four is the number of forecast windows in a batch."
+  },
+  {
+    "title": "Normalization: a numerical example",
+    "items": [
+      "RAW VALUE",
+      "140 traffic-flow units",
+      "TRAINING STATS",
+      "Mean = 100\nStandard deviation = 20",
+      "MODEL INPUT",
+      "(140 \u2212 100) / 20 = 2"
+    ],
+    "notes": "These numbers are illustrative. The normalized value of 2 means the reading is two training standard deviations above the training mean. A raw value of 80 normalizes to minus one. All splits use the same training statistics."
+  },
+  {
+    "title": "Masking and sensor coverage",
+    "items": [
+      "ACTUAL = 30",
+      "Prediction = 25\nIncluded error = 5",
+      "ACTUAL = 0",
+      "Prediction = 25\nTarget excluded",
+      "COVERAGE",
+      "696 scored sensors\n20 have no eligible test targets"
+    ],
+    "notes": "The zero mask is applied to actual future targets, not to model predictions. A model prediction of zero is still scored when the actual target is nonzero. Zeros may represent true zero flow or missing values."
+  },
+  {
+    "title": "MAE, RMSE and MAPE by example",
+    "items": [
+      "ACTUAL / PREDICTED",
+      "100 / 98 and 20 / 28\nAbsolute errors 2 and 8",
+      "MAE / RMSE",
+      "MAE = 5\nRMSE = 5.83",
+      "MAPE",
+      "2% and 40%\nAverage = 21%"
+    ],
+    "notes": "MAE averages absolute errors in the flow units. RMSE squares errors before averaging, so larger errors have greater influence. MAPE divides the absolute error by each nonzero actual target before averaging."
+  },
+  {
+    "title": "The LSTM state across time",
+    "items": [
+      "STEP 1",
+      "Read traffic at t\u2081\nUpdate hidden and cell states",
+      "STEP 2",
+      "Read traffic at t\u2082\nUse states from step 1",
+      "STEP 12",
+      "Read last observation\nKeep final hidden state"
+    ],
+    "notes": "For one sensor, the LSTM reads 12 values in order. The cell state carries information along the sequence. Gates regulate what is retained, added and exposed. Each window and sensor sequence begins with fresh states."
+  },
+  {
+    "title": "One shared LSTM for 716 sensors",
+    "items": [
+      "INPUT",
+      "One window\n(12, 716, 1)",
+      "REARRANGE",
+      "716 independent sequences\neach (12, 1)",
+      "SHARED MODEL",
+      "Same LSTM weights\nfresh states per sequence"
+    ],
+    "notes": "The project does not train 716 separate LSTMs. Each sensor history passes through the same learned model. Within this model, one sensor\u2019s current readings do not enter another sensor\u2019s sequence."
+  },
+  {
+    "title": "How a linear layer predicts 12 values",
+    "items": [
+      "INPUT",
+      "Final hidden state\n32 values for small LSTM",
+      "ONE FORECAST",
+      "32 weights + one bias\ncombine all 32 values",
+      "OUTPUT",
+      "12 sets of weights\nproduce 12 forecast steps"
+    ],
+    "notes": "For each forecast time, a linear layer multiplies each of the 32 hidden values by its learned weight and sums them with a bias. The 12 outputs are generated together. The contextual LSTM uses 256 hidden values at its selected width."
+  },
+  {
+    "title": "Contextual LSTM: how 41 is formed",
+    "items": [
+      "TRAFFIC",
+      "1 normalized reading",
+      "CALENDAR",
+      "16 time-of-day values\n8 weekday values",
+      "SENSOR ID",
+      "16 learned values\nreused across 12 steps"
+    ],
+    "notes": "At one sensor and one historical time step, the model concatenates 1 plus 16 plus 8 plus 16 values. For 12 past steps, one sensor has shape 12 by 41. Sensor identity is learned context and supplies no other sensor\u2019s current traffic readings."
+  },
+  {
+    "title": "LSTM tensor shapes through the model",
+    "items": [
+      "BATCH",
+      "(4, 12, 716, 41)",
+      "SENSOR SEQUENCES",
+      "(4 \u00d7 716, 12, 41)\n= (2,864, 12, 41)",
+      "FORECAST",
+      "(4, 12, 716, 1)\n12 future steps"
+    ],
+    "notes": "The axes are permuted so each sensor in each window is a separate sequence. The batch and sensor axes are combined, the two LSTM layers process each sequence, and the head produces 12 future values. The model restores time and sensor axes."
+  },
+  {
+    "title": "How we count trainable parameters",
+    "items": [
+      "LSTM 256",
+      "Embeddings 13,048\nLSTM layers 832,512\nHead 3,084",
+      "PATCHSTG",
+      "Projection 2,368\nEmbeddings 49,120\n5 blocks 2,231,040\nHead 2,316",
+      "TOTALS",
+      "LSTM 848,644\nPatchSTG 2,284,844"
+    ],
+    "notes": "A trainable parameter is one learned weight or bias. Count the elements in all trainable tensors and add them. The 256-unit LSTM\u2019s two recurrent layers have 306,176 and 526,336 parameters. Fixed gather and restore indices are buffers, not trainable parameters."
+  },
+  {
+    "title": "PatchSTG: project one sensor history",
+    "items": [
+      "INPUT",
+      "12 time steps \u00d7 3 values\ntraffic, slot and weekday",
+      "PROJECTION",
+      "36 inputs \u2192 64 outputs\nlearned weights and biases",
+      "ADD CONTEXT",
+      "64 + 32 + 32 + 64\n= 192 values"
+    ],
+    "notes": "The temporal convolution uses all three channels and 12 historical positions. It creates 64 values per sensor. The model concatenates time-slot and weekday embeddings for the last historical step and a sensor embedding to obtain a 192-value vector."
+  },
+  {
+    "title": "From one sensor to Query, Key and Value",
+    "items": [
+      "SENSOR 5",
+      "Representation\n(1, 192)",
+      "LINEAR LAYER",
+      "192 inputs \u2192 576 outputs\nlearned weights and biases",
+      "SPLIT",
+      "Query (1, 192)\nKey (1, 192)\nValue (1, 192)"
+    ],
+    "notes": "A single learned linear layer creates all three vectors together. Each of its 576 output numbers is a weighted sum of the 192 input values plus a bias. Splitting the output gives one query, key and value vector of width 192."
+  },
+  {
+    "title": "One query scores 64 keys",
+    "items": [
+      "SENSOR 5 QUERY",
+      "Shape (1, 192)",
+      "64 KEYS",
+      "Shape (64, 192)\ntranspose to (192, 64)",
+      "SCORES",
+      "(1, 192) \u00d7 (192, 64)\n= (1, 64)"
+    ],
+    "notes": "The query at one position is compared with every key in its patch, including its own. Each score is a dot product. With all 64 queries, the scores form a 64 by 64 matrix. Each row is one query\u2019s scores."
+  },
+  {
+    "title": "Scaling and softmax: numerical example",
+    "items": [
+      "DOT PRODUCTS",
+      "Query [1, 2]\nKeys [1, 0] and [0, 1]\nScores = 1 and 2",
+      "SCALE",
+      "Divide by \u221a2\n\u2248 0.71 and 1.41",
+      "SOFTMAX",
+      "Weights \u2248 0.33 and 0.67\nThe two weights sum to 1"
+    ],
+    "notes": "This is a two-dimensional teaching example. Actual queries and keys have width 192 and are divided by the square root of 192. Softmax is applied across the keys for each query, turning its scores into attention weights."
+  },
+  {
+    "title": "Where the Value vectors are added",
+    "items": [
+      "WEIGHT VALUES",
+      "0.33 \u00d7 [3, 0] = [0.99, 0]\n0.67 \u00d7 [0, 6] = [0, 4.02]",
+      "SUM COLUMNS",
+      "[0.99, 0] + [0, 4.02]\n= [0.99, 4.02]",
+      "PROJECT SHAPES",
+      "One query: (1, 64) \u00d7 (64, 192)\nAll queries: (64, 64) \u00d7 (64, 192)"
+    ],
+    "notes": "Each query has its own set of weights. For one query, multiply every Value vector by its corresponding weight and add down each feature column. One query gives one 192-value result. The 64 queries therefore give 64 such results."
+  },
+  {
+    "title": "Inside one PatchSTG block",
+    "items": [
+      "DEPTH",
+      "Attention over 64 positions\nwithin each patch",
+      "RESIDUAL + MLP",
+      "Normalize, attend, add\nnormalize, feed forward, add",
+      "BREADTH",
+      "Attention over 16 patches\nat the same position"
+    ],
+    "notes": "Each attention stage uses normalization, attention with a residual addition, then a feed-forward network with another residual addition. Depth occurs before breadth. A position can therefore carry information gathered from its patch into the breadth stage. The block is repeated five times with separate learned parameters."
+  },
+  {
+    "title": "Restore original sensor order",
+    "items": [
+      "PATCH LAYOUT",
+      "16 \u00d7 64 positions\nincludes repeated sensors",
+      "RESTORE MAP",
+      "One saved position\nfor each original sensor",
+      "FORECAST",
+      "716 representations \u00d7 192\n\u2192 12 predictions per sensor"
+    ],
+    "notes": "The map is constructed before attention and records the designated original position for each sensor. After the fifth block, the model gathers those 716 positions in original sensor order. It does not average all repeated positions. The shared forecast head converts each 192-value representation to 12 normalized predictions."
+  },
+  {
+    "title": "Best checkpoint and latest checkpoint",
+    "items": [
+      "BEST CHECKPOINT",
+      "Lowest validation MAE\nused for evaluation",
+      "LATEST CHECKPOINT",
+      "Latest weights + Adam state\nused to resume training",
+      "PROJECT SELECTION",
+      "256 units, epoch 37\nvalidation MAE 15.0656"
+    ],
+    "notes": "Best and latest checkpoints answer different needs. If training stops after epoch 40 with the best validation score at epoch 37, resume from the latest state but evaluate the validation-selected weights from epoch 37."
+  },
+  {
+    "title": "Interpreting the error graphs",
+    "items": [
+      "FORECAST DISTANCE",
+      "Each point pools a single lead\n15 to 180 minutes ahead",
+      "SENSOR VARIATION",
+      "Histogram of LSTM sensor MAEs\n696 sensors with valid targets",
+      "OVERALL MAE",
+      "Pools all eligible forecast\u2013target\npairs across sensors and leads"
+    ],
+    "notes": "The forecast-distance plot reveals how accuracy changes with the prediction horizon. The sensor histogram shows variation for the selected LSTM only. Overall pooled MAE weights each included forecast-target pair equally, so it is not generally the simple average of per-sensor MAEs."
+  },
+  {
+    "title": "GPU checks and numerical precision",
+    "items": [
+      "DEVICE",
+      "Move model and batch tensors\nto compatible devices",
+      "PARITY",
+      "Compare isolated and batched\ninputs and outputs",
+      "TIMING",
+      "Warm up and synchronize\nmeasure the defined scope"
+    ],
+    "notes": "The contextual probe checks the recurrent inputs exactly and compares outputs within tolerance. Floating point calculations can differ slightly across execution layouts. An early 256-width probe failed and the revised explicit FP32 check passed. A warmed repeated-batch timing omits other full-epoch work."
+  }
+]
