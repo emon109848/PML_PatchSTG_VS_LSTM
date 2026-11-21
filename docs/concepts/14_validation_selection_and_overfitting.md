@@ -3,7 +3,9 @@
 Training data changes parameters; validation guides model choices. Test scores
 must not choose hidden width, learning rate, epoch, or the next attempted variant.
 
-Our contextual study predefines widths 128, 256, and 384. Each trains 50 epochs.
+The original contextual plan predefined widths 128, 256 and 384 for 50 epochs.
+Widths 128 and 256 completed; 384 was deferred after interim validation and
+before the contextual test pass. The final choice used the two completed widths.
 Within a candidate, select lowest full-validation MAE, keeping the earlier epoch
 on exact ties. Across candidates, select lowest best MAE; exact ties favor the
 smaller hidden width. Record all candidates, not only the winner.
@@ -26,8 +28,9 @@ show updates help that batch. Neither is a validation result. One seed does not
 show statistical significance; one network does not demonstrate scalability.
 
 The contextual redesign followed observed small-LSTM test results. We disclose
-this and select subsequent candidates on validation. A final contextual test
-pass has not yet occurred at the documented snapshot.
+this and select subsequent candidates on validation. The frozen contextual test
+pass is complete: width 256 at epoch 37, test MAE 18.1696. This does not make
+the reused test period newly unseen.
 
 See [results snapshot](../results_and_status.md) and
 [capacity experiment rules](../../temp/notes/LSTM_CAPACITY_EXPERIMENT.md).

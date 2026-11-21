@@ -28,9 +28,9 @@
   "rebuild": "python scripts/build_presentation.py",
   "preview_note": "Source-layout renders with DejaVu Sans; editable PowerPoint text uses Arial. Not an actual PowerPoint engine render.",
   "outputs": {
-    "presentation.pptx": "f729921a8193734529fd2365de14872e9c2404f71bbea372abaf255b68350a95",
-    "presentation_detailed.pptx": "30b7cd9c222d58de438e045213659ea7ad6f4075e9824df60fb5f5e5847594f8",
-    "presentation.pdf": "ba3877b8dd2eb60d5940a3e1220a954991772208a8f8730342f9802e87b99eac",
-    "presentation.md": "042c231a95d65ceb5c8b8db434df9d5df2d180ad016a8fbd43d6ab9841f8a842"
+    "presentations/presentation.pptx": "81cc58fbfe7d0d8f0fac089d9a10b61bb58e5b8f4d73aa2999de0080ef8db6d0",
+    "presentations/presentation_detailed.pptx": "f635dba510d7db64b590774ea9b9832a4cf5194981a269b2dc3811a264d568e4",
+    "presentations/presentation.pdf": "0a3b47ff7c54e37e01a680b40cfd02f1b8b7144c65be4dfe3be5b8c4a8b803e3",
+    "presentations/presentation.md": "5842c1f3c99cc91170c34c8df8db97c42caabcc81aab5a280eddab771e5e2002"
   }
 }

@@ -1,6 +1,6 @@
 # Presentation assets
 
-Open `presentation.pptx` at the project root for the 23-slide main talk (about 21 minutes plus questions). `presentation_detailed.pptx` adds 21 optional explanation slides. `presentation.md` contains the slide outline and speaker notes. `presentation.pdf` is a portable source-layout preview.
+Open `presentations/presentation.pptx` under `presentations/` for the 23-slide main talk (about 21 minutes plus questions). `presentation_detailed.pptx` adds 21 optional explanation slides. `presentation.md` contains the slide outline and speaker notes. `presentation.pdf` is a portable source-layout preview.
 
 The figures compare the existing completed experiments; no training, checkpoint loading or new inference was performed to build them.
 

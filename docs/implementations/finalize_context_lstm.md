@@ -46,6 +46,8 @@ results and unequal capacity/input/optimizer/search budgets remain limitations.
 Per-sensor analysis is LSTM-only because old reports lack paired sensor-level
 forecasts. Do not infer a spatial causal explanation from those figures.
 
-Actual test output is pending host execution; synthetic metric and temporary
-report-generation checks have passed. See
+The real CUDA test pass is complete: MAE 18.1696, RMSE 31.9485 and MAPE
+12.0646%. This evaluator is for deliberate reproduction into a new directory.
+For current submission text and plots, use `python scripts/build_project_report.py`,
+which refreshes tracked reports without models or checkpoints. See
 [finalization status](../../reports/finalization_status.md).

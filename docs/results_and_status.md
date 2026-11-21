@@ -29,7 +29,8 @@ and excluded by the documented scope revision; it is not silently labeled comple
 | PatchSTG | 17.1943 | 29.1370 | 11.1706 |
 
 All use matching 6,997 test windows and 58,158,396 included target pairs.
-LSTM MAE is 5.67% higher than PatchSTG. The contextual LSTM is substantially
+PatchSTG MAE is 5.37% lower relative to LSTM (equivalently, LSTM MAE is
+5.67% higher relative to PatchSTG). The contextual LSTM is substantially
 stronger than the small reference and simple baselines, but this single-seed
 comparison does not isolate architecture, context or optimizer effects.
 
@@ -54,3 +55,13 @@ must not guide additional tuning presented as unseen-test evaluation. Calendar,
 zero semantics and sensor pairing are benchmark assumptions. Model capacity,
 spatial information, optimization and search budgets differ; report them.
 Significance, scalability and controlled causal/spatial claims remain unestablished.
+
+## Updated submission analysis
+
+The [final report](../reports/final_comparison/PROJECT_REPORT.md) and
+[main presentation](../presentations/presentation.pptx) now include PatchSTG in
+the actual 50-epoch learning curves, alongside both completed LSTM widths. The
+report also includes a neural-model horizon zoom, a paired lead-wise MAE table,
+37.1% parameter-count trade-off, fixed cached forecast example, complete training
+settings and formal references. The sensor histogram remains explicitly LSTM-only.
+No training or inference was required for this update.

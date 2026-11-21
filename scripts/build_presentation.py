@@ -26,6 +26,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "reports/presentation"
+DECKS = ROOT / "presentations"
 BACKUP = ROOT / "temp/presentation_before_review_2026-11-21"
 PREVIEW = ROOT / "temp/presentation_review_previews"
 W, H = 1600, 900
@@ -538,7 +539,7 @@ def export_pptx(slides,path,base):
 
 
 def main():
-    OUT.mkdir(parents=True,exist_ok=True);PREVIEW.mkdir(parents=True,exist_ok=True)
+    OUT.mkdir(parents=True,exist_ok=True);PREVIEW.mkdir(parents=True,exist_ok=True);DECKS.mkdir(exist_ok=True)
     data,lstm,patch,comparison=load_data();make_figures(data,lstm,patch)
     main=main_slides(data,lstm,patch);detailed=main+appendix_slides()
     previews=[]
@@ -551,13 +552,13 @@ def main():
             image=render(slide,i,len(slides),target/f'slide{i:02}.png')
             if label=='main':previews.append(image)
     base=BACKUP/'presentation.pptx'
-    if not base.exists():base=ROOT/'presentation.pptx'
+    if not base.exists():base=DECKS/'presentation.pptx'
     # Read template into memory before replacing either deck.
     template_copy=PREVIEW/'base_template.pptx'
     template_copy.write_bytes(base.read_bytes())
-    export_pptx(main,ROOT/'presentation.pptx',template_copy)
-    export_pptx(detailed,ROOT/'presentation_detailed.pptx',template_copy)
-    previews[0].save(ROOT/'presentation.pdf',save_all=True,append_images=previews[1:],resolution=120)
+    export_pptx(main,DECKS/'presentation.pptx',template_copy)
+    export_pptx(detailed,DECKS/'presentation_detailed.pptx',template_copy)
+    previews[0].save(DECKS/'presentation.pdf',save_all=True,append_images=previews[1:],resolution=120)
     sheet=Image.new('RGB',(1280,math.ceil(len(main)/4)*205),BG)
     draw=ImageDraw.Draw(sheet)
     for i,image in enumerate(previews):
@@ -573,16 +574,16 @@ def main():
                   '**Slide content**\n']
         for obj in slide.objects[3:]:
             if obj['kind']=='text':parts.append('- '+obj['text'].replace('\n',' / ')+'\n')
-            elif obj['kind']=='image':parts.append(f'- Figure: [{Path(obj["path"]).name}](reports/presentation/{Path(obj["path"]).name})\n')
+            elif obj['kind']=='image':parts.append(f'- Figure: [{Path(obj["path"]).name}](../reports/presentation/{Path(obj["path"]).name})\n')
         parts+=['\n**Speaker notes**\n\n'+slide.notes+'\n']
-    (ROOT/'presentation.md').write_text('\n'.join(parts))
+    (DECKS/'presentation.md').write_text('\n'.join(parts))
     manifest={'main_slides':len(main),'detailed_slides':len(detailed),'backup_slides':len(detailed)-len(main),
               'estimated_speaking_minutes':sum(s.minutes for s in main),'curves':['LSTM 128','LSTM 256','PatchSTG'],
               'data_sources':data['history_sources'],'models_executed':False,'checkpoints_modified':False,
               'original_backup':str(BACKUP.relative_to(ROOT)),
               'rebuild':'python scripts/build_presentation.py',
               'preview_note':'Source-layout renders with DejaVu Sans; editable PowerPoint text uses Arial. Not an actual PowerPoint engine render.',
-              'outputs':{name:digest(ROOT/name) for name in ('presentation.pptx','presentation_detailed.pptx','presentation.pdf','presentation.md')}}
+              'outputs':{"presentations/"+name:digest(DECKS/name) for name in ('presentation.pptx','presentation_detailed.pptx','presentation.pdf','presentation.md')}}
     (OUT/'build_manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
     print(json.dumps(manifest,indent=2))
 

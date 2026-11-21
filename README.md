@@ -1,122 +1,86 @@
 # Traffic forecasting: contextual LSTM versus PatchSTG
 
-Course project using processed SD traffic observations. The selected contextual
-LSTM has two layers, 256 hidden units, calendar/sensor embeddings, and 848,644
-parameters. It was selected at epoch 37 using validation MAE 15.0656 from the
-two completed 50-epoch candidates. The unfinished 384-unit run is deferred.
+Predict 12 future traffic-flow readings from 12 historical readings across 716
+sensors in processed LargeST-SD. The completed project compares persistence,
+seasonal average, contextual LSTM and PatchSTG using saved experiments.
 
-## Visual comparison dashboard
+## Start here
 
-Open [LSTM versus PatchSTG](runs/lstm_patchstg_replay_v1/index.html) in your browser.
-Compare both forecasts with actual traffic, select a sensor/lead, play through
-96 matching test origins, and switch the sensor map between models. Everything
-is embedded locally. See [dashboard instructions](docs/comparison_dashboard.md).
+| What you need | Open |
+| --- | --- |
+| Final results, plots and interpretation | [Project report](reports/final_comparison/PROJECT_REPORT.md) |
+| Main talk: 23 slides, about 21 minutes | [PowerPoint](presentations/presentation.pptx) · [PDF preview](presentations/presentation.pdf) |
+| Explanation slides and speaker notes | [Detailed deck](presentations/presentation_detailed.pptx) · [Notes](presentations/presentation.md) |
+| Understand the project step by step | [Reading guide](guide.md) |
+| Find a concept or implementation | [Documentation index](docs/README.md) |
+| Run a supported command | [Command reference](docs/commands.md) |
+| Know which files belong where | [Project structure](docs/project_structure.md) |
+
+## Recorded test results
+
+| Method | MAE ↓ | RMSE ↓ | MAPE (%) ↓ |
+| --- | ---: | ---: | ---: |
+| Persistence | 60.7825 | 94.3350 | 41.7801 |
+| Seasonal average | 28.0045 | 53.3906 | 19.9964 |
+| Contextual LSTM 256 | 18.1696 | 31.9485 | 12.0646 |
+| PatchSTG | 17.1943 | 29.1370 | 11.1706 |
+
+PatchSTG has 5.37% lower MAE relative to LSTM. LSTM uses 37.1% of its parameter
+count. This is a single-seed system comparison with different capacity and
+optimization, rather than an isolated spatial-attention experiment. LSTM width
+256 was selected at epoch 37 among two completed 50-epoch candidates; width 384
+and BigST are deferred. Read the report for protocol and limitations.
+
+## Refresh report and slides
+
+Use the existing project environment from this folder:
+
+```bash
+conda activate pml
+python scripts/build_project_report.py
+python scripts/build_presentation.py
+```
+
+Both commands reuse saved measurements. Neither trains, loads checkpoints or
+runs model inference. All three 50-epoch histories, including PatchSTG, are
+retained in tracked compact plot data. The report and slides share the same
+figure builder, including the neural-model horizon zoom and cached forecast.
+
+Model execution is separate; see [commands](docs/commands.md). The dataset stays local and is excluded from GitHub; see [data instructions](data/README.md).
+Trained weights remain local assets excluded from Git. Both are needed for model execution,
+but not for reading or rebuilding the report and slides. Direct dependencies
+are listed in [requirements.txt](requirements.txt); experiment reports record
+actual versions. No environment changes are performed by document refreshes.
 
 ## Project layout
 
 ```text
-README.md                 Start here
-guide.md                  Step-by-step reading path
-src/traffic_prediction/   Data, models, metrics, training and evaluation code
-src/traffic_benchmark/    Integrated PatchSTG, spatial maps, trainer and metrics
-scripts/                  Runnable commands
-configs/                  PatchSTG experiment configurations
-tests/patchstg/            Integrated PatchSTG checks
-demos/                    Saved replay's HTML template
-requirements.txt          Direct Python dependencies
-docs/                     Concept guides and implementation walkthroughs
-reports/                  Audit, experiment decisions and recorded checks
-runs/                     Current candidate checkpoints and generated final results
-data/raw/largest_sd/      Local traffic array and metadata
-reproducibility/          Original source snapshots and historical reference evidence
-temp/                    Archived notes, scripts, logs and superseded experiments
+README.md, guide.md       Entry point and reading route
+presentations/            Main/detailed decks, PDF and speaker notes
+docs/                     Concepts, implementation guides and learning notes
+reports/final_comparison/  Final report, figures and frozen evaluation evidence
+reports/presentation/     Shared plot assets and compact saved histories
+reports/                  Other saved experiments and data-audit evidence
+src/                      LSTM and PatchSTG implementation packages
+scripts/                  Runnable tools and document builders
+configs/, tests/, demos/  Configurations, checks and replay template
+reproducibility/           Exact source snapshots and integrity records
+data/                     Local dataset; only instructions/manifest tracked
+runs/                     Local checkpoints and generated replay
+temp/                     Local archives, previous slides and session exports
 ```
 
-Nothing was deleted during cleanup. `temp/` is not part of the main submission
-narrative; it keeps earlier educational work recoverable. Keep `reproducibility/`:
-existing checkpoints reference original source hashes, and the selected evaluator
-checks them against those exact archived bytes. Current execution source hashes
-are separately recorded in the new evaluation report.
+Keep `reproducibility/`: checkpoint verification relies on its original source
+bytes. Saved result files retain their original paths and hashes as evidence.
+Historical duplicate records are preserved for that reason.
 
-## Run the selected evaluation and comparison
+## Visual dashboard
 
-Both main models have completed test results:
+With local artifacts available, open [the saved comparison replay](runs/lstm_patchstg_replay_v1/index.html).
+It compares cached forecasts for 96 matching test origins; it does not perform
+live inference. See [dashboard instructions](docs/comparison_dashboard.md).
+A fixed matched example is embedded in the tracked report and slides for PCs
+without the ignored replay folder.
 
-| Model | Test MAE | RMSE | MAPE (%) |
-| --- | ---: | ---: | ---: |
-| Contextual LSTM (256, epoch 37) | 18.1696 | 31.9485 | 12.0646 |
-| PatchSTG (epoch 50, saved run) | 17.1943 | 29.1370 | 11.1706 |
-
-PatchSTG's implementation and full saved experiment are integrated. Read
-[the PatchSTG guide](docs/patchstg/README.md). No PatchSTG retraining or
-reevaluation is needed. To rebuild only report text and figures from saved scores:
-
-```bash
-python scripts/build_project_report.py
-```
-
-The command below is retained for deliberate reproduction of LSTM evaluation;
-the existing completed scores should normally be reused.
-
-Use the existing environment from the project root:
-
-```bash
-conda activate pml
-python -u scripts/finalize_context_lstm.py --device cuda --output-dir runs/final_comparison_v1
-```
-
-The output directory must be new. This checks the selected checkpoint, reproduces
-validation, scores frozen test predictions, and writes:
-
-- `PROJECT_REPORT.md`: comparison, interpretation, and limitations.
-- `report.json`, `selection.json`, `comparison.json`: machine-readable evidence.
-- Learning curves, forecast-lead curves, and a sensor-error distribution.
-
-Final contextual test scoring is complete: MAE **18.1696**, RMSE **31.9485**,
-MAPE **12.0646%**. Read [the final report](reports/final_comparison/PROJECT_REPORT.md).
-Do not rerun into the existing output directory. PatchSTG is integrated with its source, tests, configurations and saved experiment.
-The comparison reuses its existing measured run without retraining or reevaluation.
-
-For another machine, requirements.txt lists direct dependencies; recorded run
-reports supply the actual experiment versions. A compatible CUDA-enabled PyTorch
-environment is needed for the GPU command. No dependencies were installed or
-changed during this cleanup.
-
-## Checks and learning
-
-```bash
-python scripts/check_context_training.py
-python scripts/inspect_data.py
-```
-
-The first is a synthetic training/validation/resume check. The second runs the
-data walkthrough and baseline validation; neither starts a long training suite.
-
-For GPU feasibility on a new report path:
-
-```bash
-python scripts/check_context_lstm.py --device cuda --output reports/gpu_probe_repeat.json
-```
-
-Start learning with [guide.md](guide.md), then use [the documentation index](docs/README.md).
-See [cleanup notes](docs/project_structure.md) for moved files and reproduction details.
-The original [PatchSTG-only replay](runs/patchstg_replay_v1/index.html) is also preserved.
-Attribution is in
-[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
-
-## Submission notes
-
-For GitHub, [the version-controlled final report](reports/final_comparison/PROJECT_REPORT.md)
-and its figures are included. Raw data, weights, temp/, and generated runs stay
-local. Read [the repository asset guide](docs/github.md) for what is included
-and what is needed to reproduce the experiments.
-
-Keep source, scripts, documentation, reports and reproducibility records together.
-Raw data and model artifacts are local assets; include them only if required by
-the course submission rules. Reproducing evaluation needs the selected candidate
-checkpoints/reports and the original data files at the documented paths. Do not
-claim a source-only submission can execute inference without those assets.
-
-Exclude `temp/`, Python caches and live logs from the submission archive unless
-the instructor requests development history. No archive has been published or
-submitted automatically.
+See [GitHub asset guidance](docs/github.md) for transferring data/weights separately,
+and [third-party notices](THIRD_PARTY_NOTICES.md) for attribution.

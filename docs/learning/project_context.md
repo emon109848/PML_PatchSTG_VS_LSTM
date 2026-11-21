@@ -1,3 +1,7 @@
+> Navigation update (2026-11-21): final deliverables are in `presentations/` and
+> `reports/final_comparison/`. The report now shares all three completed learning
+> curves and comparison plots with the slides. See the root README for current commands.
+
 # Context for my traffic forecasting project
 
 I’m studying my course project, `PML_PatchSTG_VS_LSTM`. It compares a contextual LSTM with PatchSTG for traffic forecasting. I want to understand the data pipeline, model architectures, training, and results well enough to explain them myself. Teach me step by step using the implementation described here. If an answer depends on code you haven’t seen, ask me to paste the relevant function.
@@ -124,8 +128,8 @@ Use plain language and trace one reading, sensor, window, or batch at a time. Ex
 
 ## Files I can share for code-specific questions
 
-- `guide.md` and `lessons/` for the learning sequence.
-- `MY_DOUBTS.md` for saved questions and calculations.
+- `guide.md` and `docs/learning/lessons/` for the learning sequence.
+- `docs/learning/questions.md` for saved questions and calculations.
 - `reports/final_comparison/PROJECT_REPORT.md` for results and figures.
 - `src/traffic_prediction/data_pipeline.py` for splits, windows, and masks.
 - `src/traffic_prediction/lstm_model.py` and `src/traffic_prediction/context_lstm.py` for the two LSTM models.

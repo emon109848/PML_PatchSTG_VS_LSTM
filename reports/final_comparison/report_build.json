@@ -1,6 +1,28 @@
 {
-  "mode": "report/figure refresh from existing completed scores; no training or inference",
-  "lstm_test_report_sha256": "fa187dc054198e28bb765b593672211ab35d00b7c2b3f3890a65a1fda5ddcdb4",
-  "patchstg_test_report_sha256": "7459501e4346dcf4298f91d21aa9b4f5a84f3602a07f7187c47a6fbcaa05f337",
-  "report_builder_sha256": "7d031a5c3ac9cd4a8eb9cef6316b451633aea9e871d872241ed99f9eadb97413"
+  "mode": "document refresh from saved measurements; no model execution",
+  "evidence_sha256": {
+    "reports/final_comparison/report.json": "fa187dc054198e28bb765b593672211ab35d00b7c2b3f3890a65a1fda5ddcdb4",
+    "reports/final_comparison/selection.json": "e306c91651ae2602943154043fdcea1eeeaef54a9acb7f8e77b0d15ac5f4b129",
+    "reports/final_comparison/comparison.json": "35b8a1986d4153f746f97729ab2e97bc65f725e760c3a9bff823e2ff2696d714",
+    "reports/patchstg_sd_seed2023_test_v1.json": "7459501e4346dcf4298f91d21aa9b4f5a84f3602a07f7187c47a6fbcaa05f337",
+    "reports/persistence_sd_v1.json": "ba20ced4c5d36b38a41d15fe443a393e54e896c80605d7288bf34293466e8ad8",
+    "reports/seasonal_average_sd_v1.json": "d034dbe945a6e2d9057a5a01e21cda3e4cc94e6aaf1091d10edd5a8350bd1f54"
+  },
+  "history_sources": {
+    "128": {
+      "path": "runs/context_lstm_suite_v1/hidden_128/report.json",
+      "sha256": "ff4e7b540aeb8e66f4a7fb65c7c65faca1488c2679257191e103904a1615d795"
+    },
+    "256": {
+      "path": "runs/context_lstm_suite_v1/hidden_256/report.json",
+      "sha256": "3ce67dc0b22f1b438b44fd90d930a22c47e8cd5d47a687be79cbafd2f5fd23bb"
+    },
+    "patchstg": {
+      "path": "runs/patchstg_sd_seed2023_50ep/report.json",
+      "sha256": "762208ba23f6719ab3852eec6d12c8b83b2f80b15e0256d432197ffac0d90791"
+    }
+  },
+  "builder_sha256": "b2f1f7a7326b7b415d6abf50193ee03f0a36ca56aa47d7be363635dff9d92c84",
+  "shared_figure_builder_sha256": "44222902b3fec7958e93d178f81e51d58a94e21dc3f4d5db6cd8079a668ae71b",
+  "report_sha256": "eed30efd2c8d8da81d654c20e5f6c21528451df971783f39996274044a0bc185"
 }

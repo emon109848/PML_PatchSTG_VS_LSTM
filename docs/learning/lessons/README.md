@@ -11,6 +11,6 @@
 
 - [Lessons 1–10](completed.md) records what we covered, including questions about batch shapes, overlapping windows, and reading the report.
 - [Lessons 11–14](upcoming.md) contains the contextual LSTM review and the plans for training, frozen evaluation, and PatchSTG.
-- [My Doubts](../MY_DOUBTS.md) holds the questions and calculations you asked to keep separately.
+- [My Doubts](../questions.md) holds the questions and calculations you asked to keep separately.
 
-This sequence follows the project's [reading guide](../guide.md). “Covered” means we discussed the lesson together.
+This sequence follows the project's [reading guide](../../../guide.md). “Covered” means we discussed the lesson together.

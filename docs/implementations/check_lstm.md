@@ -1,6 +1,6 @@
 # Implementation: check_lstm.py
 
-Source: [check_lstm.py](../../temp/legacy_scripts/check_lstm.py).
+Source: [check_lstm.py](../../reproducibility/original_sources/check_lstm.py).
 
 This is a real-data CPU diagnostic, not training or evaluation of generalization.
 It sets seed 2023 and two CPU threads, fits the training scale, and loads the
@@ -17,7 +17,9 @@ first four chronological training windows.
 - Changing one sensor does not affect other sensors' forecasts.
 - Repeated calls use fresh states, and a batch of one works.
 
-```bash
+Historical command from the original layout (not a current root entry point):
+
+```text
 python check_lstm.py
 ```
 

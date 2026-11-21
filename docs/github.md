@@ -25,4 +25,10 @@ GitHub website. References to local checkpoints/dashboards in the learning guide
 describe local use and may not resolve in a source-only GitHub checkout.
 
 The dependency list is requirements.txt; actual experiment versions are recorded
-in run provenance. A source checkout alone does not supply data or trained weights.
+in run provenance. A source checkout supplies neither raw data nor trained weights. Transfer them separately when needed.
+
+
+## Dataset exclusion
+
+`data/raw/` is ignored. Only the data instructions and integrity manifest are
+tracked. No Git LFS setup is needed for this submission.

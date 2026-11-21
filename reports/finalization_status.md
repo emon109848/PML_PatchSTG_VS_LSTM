@@ -18,40 +18,13 @@ identity were checked. No contextual test prediction was calculated during
 selection/preparation. The decision followed observation of interim validation
 results, including partial width-384 results; disclose this scope revision.
 
-## Finishing command
+## Current action
 
-Stop any existing contextual suite process first, in the terminal that can see it:
-
-```bash
-pkill -TERM -f '^python -u scripts/train_context_lstm.py'
-```
-
-Then run the frozen evaluation/report builder on the user's GPU:
-
-```bash
-python -u scripts/finalize_context_lstm.py --device cuda --output-dir runs/final_comparison_v1
-```
-
-This verifies full validation, evaluates the selected test checkpoint without
-updates, checks frozen-state/coverage integrity, and generates overall,
-per-horizon and per-sensor LSTM metrics plus comparison figures/report.
-It reads historical baseline/PatchSTG reports and verifies matching data/protocol/
-coverage; it also verifies the integrated PatchSTG checkpoint's recorded hash.
-It does not retrain or freshly evaluate PatchSTG.
-
-Output: `runs/final_comparison_v1/PROJECT_REPORT.md`, `report.json`,
-`selection.json`, `comparison.json`, `learning_curves.png`, `test_horizons.png`,
-and `sensor_errors.png`. Existing output directories are refused.
-
-Synthetic checks passed for pooled/per-lead/per-sensor scoring, zero masks,
-empty-sensor metrics and partial batches. The report/figure builder passed a
-temporary fixture check, including the old PatchSTG checkpoint identity. Those
-fixtures were discarded and were not published as new LSTM measurements.
-
-CUDA is inaccessible to the agent. A real CPU forward timing was about 0.4 s per
-batch, suggesting a much longer CPU validation/test pass. The GPU completion
-command is prepared for the user's terminal. Final contextual test results and
-generated comparison artifacts remain pending that execution.
+No evaluation needs to be repeated. Refresh the written report from tracked saved
+measurements with `python scripts/build_project_report.py`. Refresh slides with
+`python scripts/build_presentation.py`. Neither executes a forecasting model.
+The frozen evaluator remains available for deliberate reproduction into a new
+output directory; see [commands](../docs/commands.md).
 
 ## Completed host execution
 
@@ -65,7 +38,7 @@ models outperform the recorded seasonal-average and persistence references.
 These are single-seed system comparisons with documented input/optimizer/capacity
 differences, not isolated causal evidence or statistical significance.
 
-[Final project report](../runs/final_comparison_v1/PROJECT_REPORT.md),
-[measured result](../runs/final_comparison_v1/report.json), and
-[comparison evidence](../runs/final_comparison_v1/comparison.json) are available.
+[Final project report](final_comparison/PROJECT_REPORT.md),
+[measured result](final_comparison/report.json), and
+[comparison evidence](final_comparison/comparison.json) are available.
 No further model tuning should be based on these observed test scores.

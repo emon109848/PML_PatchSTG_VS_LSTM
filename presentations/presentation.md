@@ -379,7 +379,7 @@ The two completed LSTM candidates each trained 50 epochs. Width 256 best validat
 
 **Slide content**
 
-- Figure: [learning_curves_all_models.png](reports/presentation/learning_curves_all_models.png)
+- Figure: [learning_curves_all_models.png](../reports/presentation/learning_curves_all_models.png)
 
 - Training improves steadily; validation fluctuates. Select / checkpoints, not final epochs.
 
@@ -475,7 +475,7 @@ Read the four-method table. LSTM test MAE 18.1696 versus PatchSTG 17.1943 is a d
 
 **Slide content**
 
-- Figure: [forecast_horizon_comparison.png](reports/presentation/forecast_horizon_comparison.png)
+- Figure: [forecast_horizon_comparison.png](../reports/presentation/forecast_horizon_comparison.png)
 
 - Neural-model zoom makes the gap visible without hiding the / baseline context.
 
@@ -517,7 +517,7 @@ Parameter count is a capacity/storage measure, not an inference-speed benchmark.
 
 **Slide content**
 
-- Figure: [sensor_errors_lstm.png](reports/presentation/sensor_errors_lstm.png)
+- Figure: [sensor_errors_lstm.png](../reports/presentation/sensor_errors_lstm.png)
 
 - LSTM-only diagnostic: 696 scored sensors; 20 have no eligible test / targets.
 
@@ -533,7 +533,7 @@ The histogram is LSTM-only; saved PatchSTG reports lack paired per-sensor predic
 
 **Slide content**
 
-- Figure: [matched_forecast_example.png](reports/presentation/matched_forecast_example.png)
+- Figure: [matched_forecast_example.png](../reports/presentation/matched_forecast_example.png)
 
 - First replay origin + first sensor, fixed by position—not selected by / forecast quality.
 

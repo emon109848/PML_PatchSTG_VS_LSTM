@@ -1,126 +1,213 @@
-# LSTM versus PatchSTG: project results
+# Traffic forecasting: contextual LSTM versus PatchSTG
 
-## Task and experimental decision
+## Research question and scope
 
-Predict the next 12 traffic-flow readings from 12 historical readings on processed
-SD (716 sensors; assumed 15-minute cadence). LSTM applies the course method;
-PatchSTG is the project's integrated spatial-attention model. BigST and the
-unfinished width-384 LSTM are deferred by user decision to complete this scope.
+How do a contextual temporal LSTM and an integrated spatial-attention PatchSTG
+system compare when predicting the next 12 traffic readings from the previous
+12 readings? The LSTM directly applies the course method. Persistence and seasonal
+average provide simple reference forecasts. BigST and the unfinished LSTM width
+384 are deferred. This report describes completed recorded experiments, rather
+than a proposal for new training.
 
-The original search planned widths 128/256/384. The user narrowed it to the two
-completed 50-epoch candidates before the contextual test pass. Width 256 won by
-best validation MAE, selecting epoch 37. Width 384 is
-not a completed or rejected experiment; its existing artifacts are preserved.
-This is a revised two-candidate selection, not the original completed suite.
+PatchSTG is integrated with its implementation, configurations, spatial maps,
+training records and saved evaluation. Its existing completed run is reused.
+No training, checkpoint loading or model inference is performed when rebuilding
+this report or its figures.
 
-## Shared evaluation protocol
+## Data and shared protocol
 
-Chronological train/validation/test boundaries are 21024/28032/35040. Training-only
-global normalization includes zeros. Targets remain in original units; zero
-targets are excluded, without imputation or prediction clipping. Score all 6,997
-test windows and 58,158,396 included forecast-target
-pairs. Reference reports match data hashes, window protocol, and lead-wise counts.
+The processed LargeST-SD array has shape **35,040 × 716 × 1**. We treat it as
+2019 San Diego traffic flow with a 15-minute cadence, so 12 steps span three hours.
+Cadence, calendar origin (2019-01-01) and metadata/sensor alignment remain
+assumptions because the processed array itself has no timestamps or sensor IDs.
 
-## Test accuracy
+| Item | Setting |
+| --- | --- |
+| Train target interval | [0, 21024) |
+| Validation target interval | [21024, 28032) |
+| Test target interval | [28032, 35040) |
+| History / horizon / stride | 12 / 12 / 1 |
+| Normalization | One global training-only mean/std; zeros included |
+| Target convention | Zero targets excluded; zero inputs retained; no imputation |
+| Metrics | Pooled original-unit MAE, RMSE and MAPE; lower is better |
+| Test coverage | 6,997 windows; 58,158,396 eligible forecast–target pairs |
+
+Every window's targets stay inside one split. Earlier observed history can cross
+a split boundary. Both learned models use the same target origins and lead-wise
+mask coverage. Overlapping forecast pairs are correlated, not independent trials.
+
+Persistence repeats the latest observation. Seasonal average uses nonzero
+training means by sensor, weekday and time slot, with sensor/global fallbacks.
+
+## Models and actual training settings
+
+The contextual LSTM concatenates normalized flow (1), time-slot embedding (16),
+weekday embedding (8) and sensor embedding (16): **41 values per historical step**.
+It processes each sensor history independently with shared weights, two recurrent
+layers and fresh states per window. The selected 256-unit model uses a linear
+head to predict all 12 leads directly. It has **848,644 parameters**.
+
+PatchSTG projects historical traffic/calendar channels, adds learned context to
+width 192, gathers **16 patches × 64 positions**, applies five dual-attention
+blocks, restores 716 original sensors and predicts 12 leads. Coordinates define
+patches and training-derived similarity supplies padding positions. Depth
+attention combines 64 positions within a patch; breadth attention jointly combines
+16 matching positions across patches. In each attention stage, independently
+projected Queries and Keys produce softmax weights, which multiply the separately
+projected Values. The integrated adaptation has **2,284,844 parameters**.
+
+| Setting | Contextual LSTM | PatchSTG |
+| --- | --- | --- |
+| History / horizon | 12 / 12 | 12 / 12 |
+| Calendar / sensor identity | Yes | Yes |
+| Other sensors' current histories | No | Through spatial attention |
+| Completed epochs / batch / seed | 50 / 4 / 2023 | 50 / 4 / 2023 |
+| Optimizer | Adam | AdamW |
+| Learning rate | 0.001 fixed | 0.002 initially; ×0.5 at epoch ends 1, 35, 40 |
+| Weight decay / gradient clipping | None / none | 0.0001 / norm 5 |
+| Selection | Lowest full validation MAE | Lowest full validation MAE |
+
+Equal epochs align data passes, not compute, capacity or tuning budgets.
+
+## Validation selection and learning curves
+
+| Candidate | Completed epochs | Selected epoch | Validation MAE |
+| --- | ---: | ---: | ---: |
+| LSTM 128 | 50 | 39 | 15.3385 |
+| LSTM 256 | 50 | 37 | 15.0656 |
+| PatchSTG | 50 | 50 | 14.9936 |
+
+Widths 128 and 256 each completed 50 epochs. The original three-width plan was
+narrowed before the contextual test pass; width 384 is unfinished, not a rejected
+completed candidate. Width 256 was selected at epoch 37 using validation only.
+PatchSTG selected epoch 50.
+
+![Real 50-epoch training and validation curves for both LSTM widths and PatchSTG](learning_curves.png)
+
+![Validation detail: epochs 8–50 and MAE 14.6–18](validation_zoom.png)
+
+The larger LSTM lowers training error, but its validation improvement over width
+128 is modest. Both LSTM candidates have worse final validation errors than their
+selected checkpoints. PatchSTG starts with higher error but ends with the lowest
+recorded validation MAE (14.9936 versus 15.0656). Its different optimization prevents
+attributing the trajectory solely to architecture. Training metrics pool evolving
+weights; validation evaluates completed-epoch frozen weights.
+
+These are actual stored histories for all three completed runs. The compact
+[plot data](../presentation/slide_data.json) retains all 150 epoch records and
+original report hashes so another PC can rebuild the figures without local runs.
+
+## Frozen test results
 
 | Model | MAE | RMSE | MAPE (%) |
 | --- | ---: | ---: | ---: |
 | Persistence | 60.7825 | 94.3350 | 41.7801 |
 | Seasonal average | 28.0045 | 53.3906 | 19.9964 |
-| PatchSTG | 17.1943 | 29.1370 | 11.1706 |
 | Contextual LSTM 256 | 18.1696 | 31.9485 | 12.0646 |
+| PatchSTG | 17.1943 | 29.1370 | 11.1706 |
 
-Baseline/PatchSTG values reuse the integrated completed runs and saved reports;
-PatchSTG was not retrained or reevaluated for this comparison.
-The contextual result is a new frozen evaluation on cuda. The
-LSTM MAE differs by +5.67% relative to PatchSTG; negative means lower.
-This is a single-seed observed difference, not statistical significance.
+PatchSTG records the lowest error on all three metrics. Its MAE is **0.9753
+flow units lower**, a **5.37% reduction relative to LSTM**. Equivalently,
+LSTM MAE is 5.67% higher relative to PatchSTG; the denominators differ.
+These are single-seed observed differences, not a significance result.
 
-## Learning and capacity
+The LSTM has **37.1% of PatchSTG's parameter count**, while retaining competitive
+accuracy. Parameter count measures capacity/storage; it does not establish faster
+inference. Timing was not controlled between the systems.
 
-![Learning curves](learning_curves.png)
+## Forecast distance: both learned models
 
-The 128-unit candidate selected epoch 39 (validation MAE 15.3385); width 256
-selected epoch 37 (15.0656). Their final-epoch errors were higher than these
-best values, supporting validation checkpoint selection rather than automatically
-using epoch 50. Training scores pool changing weights, while validation scores
-use each completed epoch's frozen model. The plots should be read accordingly.
+![All four methods and a separately labeled neural-model zoom](test_horizons.png)
 
-Selected contextual LSTM has 848,644 parameters
-versus PatchSTG's 2,284,844. Relative to
-the small LSTM, context, layers and width changed together. Improved accuracy
-cannot identify the separate contribution of each change without ablations.
-
-## Forecast distance
-
-![Test MAE by forecast lead](test_horizons.png)
-
-| Assumed minutes ahead | LSTM MAE | LSTM RMSE | LSTM MAPE (%) |
+| Assumed minutes ahead | LSTM MAE | PatchSTG MAE | LSTM minus PatchSTG |
 | --- | ---: | ---: | ---: |
-| 15 | 12.6201 | 20.3849 | 8.3125 |
-| 30 | 14.2680 | 23.8801 | 9.1331 |
-| 45 | 15.5069 | 26.3843 | 10.0173 |
-| 60 | 16.5213 | 28.2402 | 10.8277 |
-| 75 | 17.4568 | 30.0105 | 11.4375 |
-| 90 | 18.2672 | 31.4652 | 12.0772 |
-| 105 | 18.9844 | 32.8310 | 12.4731 |
-| 120 | 19.6602 | 34.1987 | 13.0413 |
-| 135 | 20.2702 | 35.4819 | 13.5678 |
-| 150 | 20.8472 | 36.7519 | 13.9392 |
-| 165 | 21.5214 | 38.1973 | 14.6868 |
-| 180 | 22.1115 | 39.5253 | 15.2619 |
+| 15 | 12.6201 | 11.8080 | 0.8121 |
+| 30 | 14.2680 | 13.4866 | 0.7814 |
+| 45 | 15.5069 | 14.6465 | 0.8604 |
+| 60 | 16.5213 | 15.6450 | 0.8763 |
+| 75 | 17.4568 | 16.5619 | 0.8949 |
+| 90 | 18.2672 | 17.3399 | 0.9274 |
+| 105 | 18.9844 | 18.0584 | 0.9260 |
+| 120 | 19.6602 | 18.6190 | 1.0412 |
+| 135 | 20.2702 | 19.2063 | 1.0640 |
+| 150 | 20.8472 | 19.8116 | 1.0356 |
+| 165 | 21.5214 | 20.3081 | 1.2133 |
+| 180 | 22.1115 | 20.8403 | 1.2713 |
 
-Read the plotted curves to distinguish near-term behavior from long-lead errors.
-A pooled score can conceal such differences. Longer-lead error is consistent
-with less immediate observational guidance, but this experiment alone does not
-establish its cause or prove spatial attention is responsible for a difference.
+PatchSTG has lower recorded MAE at all 12 leads. The absolute gap grows from about
+0.81 at 15 minutes to 1.27 at 180 minutes. Relative gains do not establish a
+monotonically increasing spatial advantage. Persistence deteriorates sharply;
+seasonal average is relatively flat. The right-hand zoom makes the neural gap
+visible while the left plot preserves all-baseline context. This result is
+consistent with spatial/context modeling being useful, but does not isolate its
+causal contribution.
 
-## Sensor variation and data coverage
+## A matched forecast example
 
-![Selected LSTM sensor errors](sensor_errors.png)
+![History, both model forecasts and actual future for a fixed replay example](matched_forecast.png)
 
-696 sensors have included test targets; 20 have none and
-are explicitly assigned null metrics in report.json. Error variation among
-scored sensors motivates sensor-level interpretation, but the distribution is
-for LSTM only: reference reports do not provide matching per-sensor forecasts.
-Do not claim a spatial explanation from this histogram alone. Zeros may indicate
-missingness or true zero flow; masking is a benchmark convention.
+This uses the **first chronological replay origin and first sensor** (sensor
+1114091), chosen by position rather than favorable error.
+Both forecasts are cached display-rounded outputs from the existing comparison
+replay. Actual future observations are shown for inspection and were not model
+inputs. A single example illustrates the task; aggregate metrics establish the
+recorded overall comparison.
 
-## Fairness, interpretation, and limitations
+## Sensor variation and coverage
 
-Both contextual LSTM and PatchSTG use traffic, calendar and learned sensor identity.
-The LSTM processes sensors independently. PatchSTG additionally uses coordinates,
-training-derived similarity, and spatial attention. PatchSTG uses AdamW with
-different learning rate, schedule, decay and clipping; LSTM uses fixed-lr Adam.
-Matching 50 epochs aligns dataset passes, not computation or tuning budget.
-The LSTM search used two completed widths; report that extra selection effort.
+![LSTM-only per-sensor error distribution](sensor_errors.png)
 
-The integrated PatchSTG is an adapted implementation, not an official
-full-paper reproduction. Only one seed and one network were studied. There is
-no significance, scalability, or isolated spatial-attention causal claim.
-PatchSTG and small-LSTM test results were already observed before this
-follow-up design; the test set is reused rather than newly unseen. No test score
-selected this contextual checkpoint and no further tuning follows this test pass.
+There are **696 sensors with eligible test targets and 20 without**. The right
+tail identifies difficult cases worth investigating. This histogram is explicitly
+LSTM-only: no matching full PatchSTG per-sensor metrics were saved in the available
+aggregate report. The limited cached replay is not a substitute for a full-test
+sensor evaluation. No comparative histogram is invented. Overall pooled MAE is
+not generally the unweighted average of sensor MAEs. Masked zeros may represent
+missingness or true zero flow; their meaning is unresolved.
 
-Calendar timestamps and metadata/sensor pairing remain assumptions. Timing is
-recorded in run reports but is not a controlled comparison of inference kernels.
-PatchSTG's completed training report, selected checkpoint, spatial maps and
-source code are integrated and integrity-checked. Comparison reuses its saved
-test metrics without executing PatchSTG inference again.
+## Interpretation, fairness and limitations
 
-## Reproduction and artifacts
+Both learned systems outperform the simple baselines. PatchSTG is more accurate
+in this recorded comparison; the contextual LSTM offers lower parameter count.
+A plausible explanation is that PatchSTG can exchange traffic information between
+sensors, while the shared LSTM only sees its own sensor's history and identity.
+However, capacity, coordinates/similarity, optimizer, learning-rate schedule,
+regularization and search effort also differ. The experiment cannot identify
+which factor caused the gap. Context, width and layers also changed together
+from the small LSTM, so that earlier improvement is not an embedding ablation.
 
-- selection.json: frozen validation-only choice and explicit scope revision.
-- report.json: frozen LSTM test metrics, horizons, sensors, identity and checks.
-- comparison.json: reference report paths/hashes and overall metrics.
-- Figures above: generated from stored learning histories and measured scores.
+Only one seed and one network were studied. The test period had already been
+observed before the contextual redesign; it is reused rather than newly unseen.
+The contextual checkpoint was selected by validation, but this does not erase
+that earlier exposure. Do not tune further on these results while claiming a
+fresh test. Calendar and sensor pairing remain assumptions. The integrated
+PatchSTG is an adapted implementation rather than an official full-paper
+reproduction. No statistical significance, scalability or controlled speed claim
+is established. Multiple seeds, controlled context/spatial ablations and a new
+evaluation period are future work, not completed results.
 
-Run from the project root with a new output directory:
+## Reproduce documents without rerunning experiments
+
+From the project root:
 
 ```bash
-python scripts/finalize_context_lstm.py --device cuda --output-dir runs/final_comparison_v1
+python scripts/build_project_report.py
+python scripts/build_presentation.py
 ```
 
-The script refuses existing outputs, creates no optimizer, uses no-grad scoring,
-and checks model tensors and checkpoint bytes remain unchanged. Existing training
-code, reports and checkpoints are not modified. Final test results are fixed.
+The first command refreshes this report and figures from tracked saved results.
+The second rebuilds the decks in `presentations/`. Neither trains or evaluates a
+model. Raw data and checkpoints are not needed for these document refreshes.
+For deliberate model execution see [commands](../../docs/commands.md).
+
+Measured evidence is preserved: [LSTM test](report.json), [selection](selection.json),
+[comparison](comparison.json), and [PatchSTG test](../patchstg_sd_seed2023_test_v1.json).
+[Build provenance](report_build.json) records source hashes. Original experimental
+snapshots under `reproducibility/` remain intact. The presentation and report use
+the same figure-generation functions and saved data.
+
+## References
+
+- Fang et al. *Efficient Large-Scale Traffic Forecasting with Transformers: A Spatial Data Management Perspective*. KDD 2025. [Paper](https://arxiv.org/abs/2412.09972v2).
+- Liu et al. *LargeST: A Benchmark Dataset for Large-Scale Traffic Forecasting*. NeurIPS 2023. [Paper](https://arxiv.org/abs/2306.08259).
+- [Integrated implementation guide](../../docs/patchstg/README.md) and [attribution](../../THIRD_PARTY_NOTICES.md).

@@ -1,4 +1,26 @@
-# Clean project structure and migration
+# Project structure
+
+The [root README](../README.md) is the entry point. Final written results live in
+`reports/final_comparison/`; slides and notes live in `presentations/`. Concepts
+and code walkthroughs are under `docs/`, and personal lessons/questions are under
+`docs/learning/`. Report assets and compact histories are under
+`reports/presentation/`, so report/slide refreshes work without ignored run files.
+
+## Latest cleanup
+
+| Previous location | Current location |
+| --- | --- |
+| Root `presentation*.pptx`, PDF and Markdown | `presentations/` |
+| Root `MY_DOUBTS.md` | `docs/learning/questions.md` |
+| Root `PROJECT_CONTEXT_FOR_CHATGPT.md` | `docs/learning/project_context.md` |
+| Root `lessons/` | `docs/learning/lessons/` |
+| Exported Codex session | `temp/session_exports/` |
+
+Links and presentation output paths were updated. `temp/` contains local archives
+and is ignored by Git. No datasets, checkpoints, measured results or exact source
+snapshots were deleted or moved. Evidence JSON retains original bytes and paths.
+
+## Code and evidence layout
 
 Cleanup groups code and separates current work from development history. It
 does not change the LSTM architecture, learned weights, data splits, masks,

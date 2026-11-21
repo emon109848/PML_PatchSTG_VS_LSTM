@@ -1,3 +1,8 @@
+> Start with the [final report](reports/final_comparison/PROJECT_REPORT.md) for
+> completed results, or [presentations/](presentations/README.md) for slides.
+> This guide is the longer reading route; the [documentation index](docs/README.md)
+> lets you choose one concept or implementation at a time.
+
 # Reading guide: understand the full traffic forecasting project
 
 Visual learning aid: [LSTM–PatchSTG dashboard](runs/lstm_patchstg_replay_v1/index.html)
@@ -407,11 +412,12 @@ Prepare a short explanation that separates these observations:
 - The original small traffic-only LSTM was a weak reference.
 - Context and capacity together substantially improved validation performance.
 - The completed contextual candidates are competitive with integrated PatchSTG
-  validation, but the final three-candidate selection is not yet complete.
+  validation. Width 256, epoch 37 was selected among the two completed widths;
+  width 384 is deferred. Frozen test MAE is 18.1696 versus PatchSTG 17.1943.
 - More parameters do not guarantee better results, and PatchSTG is not
   guaranteed to beat LSTM.
 
-The current result snapshot is dated; saved training reports may have advanced.
+The final report contains the completed measurements and updated comparison plots.
 Do not interpret a validation score as a test score or an architectural cause.
 The comparison differs in inputs, capacity, optimization and search budget.
 One seed does not establish statistical significance.

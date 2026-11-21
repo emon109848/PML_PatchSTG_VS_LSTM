@@ -1,0 +1,15 @@
+{
+  "description": "Exact processed SD data used in the recorded experiments; data files retained locally and excluded from GitHub.",
+  "files": [
+    {
+      "path": "data/raw/largest_sd/flowsd.npz",
+      "bytes": 200709382,
+      "sha256": "7aaf031a573bc27451360dee9d74e9359eb8205194077bf922a7a6b4432f771c"
+    },
+    {
+      "path": "data/raw/largest_sd/sd_meta.csv",
+      "bytes": 47979,
+      "sha256": "c72a22095d1353bc38e6cd21daa9c17602023775dada1d84420c1b721e177e4a"
+    }
+  ]
+}

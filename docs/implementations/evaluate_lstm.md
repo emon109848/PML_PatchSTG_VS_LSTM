@@ -1,6 +1,6 @@
 # Implementation: evaluate_lstm.py
 
-Source: [evaluate_lstm.py](../../temp/legacy_scripts/evaluate_lstm.py).
+Source: [evaluate_lstm.py](../../reproducibility/original_sources/evaluate_lstm.py).
 
 This evaluates the original traffic-only LSTM checkpoint, not ContextLSTM.
 Default input is runs/lstm_50epochs_gpu_v1/best.pt. Existing output directories

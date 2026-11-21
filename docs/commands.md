@@ -1,4 +1,19 @@
-# Command reference
+# Supported commands
+
+## Refresh submission documents — no model execution
+
+Run from the project root:
+
+```bash
+python scripts/build_project_report.py
+python scripts/build_presentation.py
+```
+
+The first refreshes `reports/final_comparison/PROJECT_REPORT.md` and its five plots.
+The second writes decks, PDF and notes under `presentations/`. Both use saved
+measurements and portable plot data; local checkpoints and raw data are not needed.
+The following sections describe model/data commands and may require local assets.
+
 
 ## Current completion scope
 
@@ -37,12 +52,12 @@ should be preserved. Do not launch duplicate training processes against one suit
 
 ```bash
 python scripts/inspect_data.py
-python check_lstm.py
 python scripts/check_context_training.py
 ```
 
-The first runs baseline validation, not just a file listing. The second computes
-small-LSTM gradients without updates. The third uses synthetic data/temp files.
+The first runs baseline validation, not just a file listing. The second uses
+synthetic data/temp files. The archived small-LSTM diagnostic is documented in
+[its walkthrough](implementations/check_lstm.md); it is not a current root command.
 
 For a deliberate new audit:
 
