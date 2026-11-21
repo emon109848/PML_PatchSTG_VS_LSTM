@@ -60,3 +60,10 @@ The first layer receives 41 values at each step, made up of 1 traffic value and 
 | **Total** | | **2,284,844** |
 
 At width 192, one block has two attention layers with a combined count of `2×4×192×(192 + 1)`, two feed-forward networks with `2×2×192×(192 + 1)`, and four normalization layers with `4×2×192`. These sum to 446,208 per block. The sensor grouping indices are fixed buffers and contribute zero trainable parameters. [PatchSTG definition](src/traffic_benchmark/models/patchstg.py#L40)
+
+## 4. What do the batch size and F mean in the contextual LSTM?
+
+- **Batch size 4** means four forecast windows are fed to the model together. Each window contains 12 past time steps from all 716 sensors. The raw traffic batch has shape `(4, 12, 716, 1)`, where the final `1` is the traffic reading for one sensor at one time step.
+- **F** is the number of input values the LSTM receives for one sensor at one time step. Here, `F = 41`: one traffic value, 16 time-of-day embedding values, 8 weekday embedding values, and 16 sensor ID embedding values.
+
+After adding context, the tensor has shape `(4, 12, 716, 41)`. The model moves the sensor axis before time, giving `(4, 716, 12, 41)`, then merges the window and sensor axes. The resulting shape is `(2864, 12, 41)`. Each of the 2,864 sequences belongs to one sensor in one window and has 12 time steps with 41 input values per step. [Contextual LSTM forward method](src/traffic_prediction/context_lstm.py#L29)

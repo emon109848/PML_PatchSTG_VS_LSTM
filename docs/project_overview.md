@@ -3,7 +3,6 @@
 This course project compares contextual LSTM and PatchSTG for processed SD
 traffic forecasting, with persistence and seasonal-average baselines. LSTM
 applies a method learned in class; PatchSTG provides a spatial-attention system.
-BigST and the unfinished LSTM width-384 run are deferred.
 
 ## Shared task
 
