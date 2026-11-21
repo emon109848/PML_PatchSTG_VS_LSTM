@@ -543,3 +543,323 @@ Predict → masked MAE loss → backpropagation → optimizer update
 **What to say**
 
 “These files document the implementation, experiment configuration, saved results, and third-party attribution.”
+
+
+## Detailed lesson slides
+
+These supplementary slides expand the lesson explanations and can be selected or removed when preparing the 20-minute version.
+
+### Detail 1 — How overlapping windows move
+
+**Insert on the slide**
+
+- **WINDOW 1** — Input 0–11; Targets 12–23
+
+- **WINDOW 2** — Input 1–12; Targets 13–24
+
+- **WINDOW 3** — Input 2–13; Targets 14–25
+
+
+**What to say**
+
+“Each new forecast uses actual readings available at its forecast time. Earlier target readings can appear as inputs later. Windows in a batch remain independent. Randomly splitting overlapping targets across train and test could leak answers.”
+
+### Detail 2 — Dataset, DataLoader and a batch
+
+**Insert on the slide**
+
+- **DATASET** — Builds one window; x, y, mask, target_start
+
+- **DATALOADER** — Stacks four examples; shape (4, 12, 716, 1)
+
+- **TIME ORDER** — Training windows shuffle; steps inside each stay ordered
+
+
+**What to say**
+
+“The dataset uses target start indices to slice the original array on demand. The DataLoader groups examples, keeping inputs, targets and masks aligned. Four is the number of forecast windows in a batch.”
+
+### Detail 3 — Normalization: a numerical example
+
+**Insert on the slide**
+
+- **RAW VALUE** — 140 traffic-flow units
+
+- **TRAINING STATS** — Mean = 100; Standard deviation = 20
+
+- **MODEL INPUT** — (140 − 100) / 20 = 2
+
+
+**What to say**
+
+“These numbers are illustrative. The normalized value of 2 means the reading is two training standard deviations above the training mean. A raw value of 80 normalizes to minus one. All splits use the same training statistics.”
+
+### Detail 4 — Masking and sensor coverage
+
+**Insert on the slide**
+
+- **ACTUAL = 30** — Prediction = 25; Included error = 5
+
+- **ACTUAL = 0** — Prediction = 25; Target excluded
+
+- **COVERAGE** — 696 scored sensors; 20 have no eligible test targets
+
+
+**What to say**
+
+“The zero mask is applied to actual future targets, not to model predictions. A model prediction of zero is still scored when the actual target is nonzero. Zeros may represent true zero flow or missing values.”
+
+### Detail 5 — MAE, RMSE and MAPE by example
+
+**Insert on the slide**
+
+- **ACTUAL / PREDICTED** — 100 / 98 and 20 / 28; Absolute errors 2 and 8
+
+- **MAE / RMSE** — MAE = 5; RMSE = 5.83
+
+- **MAPE** — 2% and 40%; Average = 21%
+
+
+**What to say**
+
+“MAE averages absolute errors in the flow units. RMSE squares errors before averaging, so larger errors have greater influence. MAPE divides the absolute error by each nonzero actual target before averaging.”
+
+### Detail 6 — The LSTM state across time
+
+**Insert on the slide**
+
+- **STEP 1** — Read traffic at t₁; Update hidden and cell states
+
+- **STEP 2** — Read traffic at t₂; Use states from step 1
+
+- **STEP 12** — Read last observation; Keep final hidden state
+
+
+**What to say**
+
+“For one sensor, the LSTM reads 12 values in order. The cell state carries information along the sequence. Gates regulate what is retained, added and exposed. Each window and sensor sequence begins with fresh states.”
+
+### Detail 7 — One shared LSTM for 716 sensors
+
+**Insert on the slide**
+
+- **INPUT** — One window; (12, 716, 1)
+
+- **REARRANGE** — 716 independent sequences; each (12, 1)
+
+- **SHARED MODEL** — Same LSTM weights; fresh states per sequence
+
+
+**What to say**
+
+“The project does not train 716 separate LSTMs. Each sensor history passes through the same learned model. Within this model, one sensor’s current readings do not enter another sensor’s sequence.”
+
+### Detail 8 — How a linear layer predicts 12 values
+
+**Insert on the slide**
+
+- **INPUT** — Final hidden state; 32 values for small LSTM
+
+- **ONE FORECAST** — 32 weights + one bias; combine all 32 values
+
+- **OUTPUT** — 12 sets of weights; produce 12 forecast steps
+
+
+**What to say**
+
+“For each forecast time, a linear layer multiplies each of the 32 hidden values by its learned weight and sums them with a bias. The 12 outputs are generated together. The contextual LSTM uses 256 hidden values at its selected width.”
+
+### Detail 9 — Contextual LSTM: how 41 is formed
+
+**Insert on the slide**
+
+- **TRAFFIC** — 1 normalized reading
+
+- **CALENDAR** — 16 time-of-day values; 8 weekday values
+
+- **SENSOR ID** — 16 learned values; reused across 12 steps
+
+
+**What to say**
+
+“At one sensor and one historical time step, the model concatenates 1 plus 16 plus 8 plus 16 values. For 12 past steps, one sensor has shape 12 by 41. Sensor identity is learned context and supplies no other sensor’s current traffic readings.”
+
+### Detail 10 — LSTM tensor shapes through the model
+
+**Insert on the slide**
+
+- **BATCH** — (4, 12, 716, 41)
+
+- **SENSOR SEQUENCES** — (4 × 716, 12, 41); = (2,864, 12, 41)
+
+- **FORECAST** — (4, 12, 716, 1); 12 future steps
+
+
+**What to say**
+
+“The axes are permuted so each sensor in each window is a separate sequence. The batch and sensor axes are combined, the two LSTM layers process each sequence, and the head produces 12 future values. The model restores time and sensor axes.”
+
+### Detail 11 — How we count trainable parameters
+
+**Insert on the slide**
+
+- **LSTM 256** — Embeddings 13,048; LSTM layers 832,512; Head 3,084
+
+- **PATCHSTG** — Projection 2,368; Embeddings 49,120; 5 blocks 2,231,040; Head 2,316
+
+- **TOTALS** — LSTM 848,644; PatchSTG 2,284,844
+
+
+**What to say**
+
+“A trainable parameter is one learned weight or bias. Count the elements in all trainable tensors and add them. The 256-unit LSTM’s two recurrent layers have 306,176 and 526,336 parameters. Fixed gather and restore indices are buffers, not trainable parameters.”
+
+### Detail 12 — PatchSTG: project one sensor history
+
+**Insert on the slide**
+
+- **INPUT** — 12 time steps × 3 values; traffic, slot and weekday
+
+- **PROJECTION** — 36 inputs → 64 outputs; learned weights and biases
+
+- **ADD CONTEXT** — 64 + 32 + 32 + 64; = 192 values
+
+
+**What to say**
+
+“The temporal convolution uses all three channels and 12 historical positions. It creates 64 values per sensor. The model concatenates time-slot and weekday embeddings for the last historical step and a sensor embedding to obtain a 192-value vector.”
+
+### Detail 13 — From one sensor to Query, Key and Value
+
+**Insert on the slide**
+
+- **SENSOR 5** — Representation; (1, 192)
+
+- **LINEAR LAYER** — 192 inputs → 576 outputs; learned weights and biases
+
+- **SPLIT** — Query (1, 192); Key (1, 192); Value (1, 192)
+
+
+**What to say**
+
+“A single learned linear layer creates all three vectors together. Each of its 576 output numbers is a weighted sum of the 192 input values plus a bias. Splitting the output gives one query, key and value vector of width 192.”
+
+### Detail 14 — One query scores 64 keys
+
+**Insert on the slide**
+
+- **SENSOR 5 QUERY** — Shape (1, 192)
+
+- **64 KEYS** — Shape (64, 192); transpose to (192, 64)
+
+- **SCORES** — (1, 192) × (192, 64); = (1, 64)
+
+
+**What to say**
+
+“The query at one position is compared with every key in its patch, including its own. Each score is a dot product. With all 64 queries, the scores form a 64 by 64 matrix. Each row is one query’s scores.”
+
+### Detail 15 — Scaling and softmax: numerical example
+
+**Insert on the slide**
+
+- **DOT PRODUCTS** — Query [1, 2]; Keys [1, 0] and [0, 1]; Scores = 1 and 2
+
+- **SCALE** — Divide by √2; ≈ 0.71 and 1.41
+
+- **SOFTMAX** — Weights ≈ 0.33 and 0.67; The two weights sum to 1
+
+
+**What to say**
+
+“This is a two-dimensional teaching example. Actual queries and keys have width 192 and are divided by the square root of 192. Softmax is applied across the keys for each query, turning its scores into attention weights.”
+
+### Detail 16 — Where the Value vectors are added
+
+**Insert on the slide**
+
+- **WEIGHT VALUES** — 0.33 × [3, 0] = [0.99, 0]; 0.67 × [0, 6] = [0, 4.02]
+
+- **SUM COLUMNS** — [0.99, 0] + [0, 4.02]; = [0.99, 4.02]
+
+- **PROJECT SHAPES** — One query: (1, 64) × (64, 192); All queries: (64, 64) × (64, 192)
+
+
+**What to say**
+
+“Each query has its own set of weights. For one query, multiply every Value vector by its corresponding weight and add down each feature column. One query gives one 192-value result. The 64 queries therefore give 64 such results.”
+
+### Detail 17 — Inside one PatchSTG block
+
+**Insert on the slide**
+
+- **DEPTH** — Attention over 64 positions; within each patch
+
+- **RESIDUAL + MLP** — Normalize, attend, add; normalize, feed forward, add
+
+- **BREADTH** — Attention over 16 patches; at the same position
+
+
+**What to say**
+
+“Each attention stage uses normalization, attention with a residual addition, then a feed-forward network with another residual addition. Depth occurs before breadth. A position can therefore carry information gathered from its patch into the breadth stage. The block is repeated five times with separate learned parameters.”
+
+### Detail 18 — Restore original sensor order
+
+**Insert on the slide**
+
+- **PATCH LAYOUT** — 16 × 64 positions; includes repeated sensors
+
+- **RESTORE MAP** — One saved position; for each original sensor
+
+- **FORECAST** — 716 representations × 192; → 12 predictions per sensor
+
+
+**What to say**
+
+“The map is constructed before attention and records the designated original position for each sensor. After the fifth block, the model gathers those 716 positions in original sensor order. It does not average all repeated positions. The shared forecast head converts each 192-value representation to 12 normalized predictions.”
+
+### Detail 19 — Best checkpoint and latest checkpoint
+
+**Insert on the slide**
+
+- **BEST CHECKPOINT** — Lowest validation MAE; used for evaluation
+
+- **LATEST CHECKPOINT** — Latest weights + Adam state; used to resume training
+
+- **PROJECT SELECTION** — 256 units, epoch 37; validation MAE 15.0656
+
+
+**What to say**
+
+“Best and latest checkpoints answer different needs. If training stops after epoch 40 with the best validation score at epoch 37, resume from the latest state but evaluate the validation-selected weights from epoch 37.”
+
+### Detail 20 — Interpreting the error graphs
+
+**Insert on the slide**
+
+- **FORECAST DISTANCE** — Each point pools a single lead; 15 to 180 minutes ahead
+
+- **SENSOR VARIATION** — Histogram of LSTM sensor MAEs; 696 sensors with valid targets
+
+- **OVERALL MAE** — Pools all eligible forecast–target; pairs across sensors and leads
+
+
+**What to say**
+
+“The forecast-distance plot reveals how accuracy changes with the prediction horizon. The sensor histogram shows variation for the selected LSTM only. Overall pooled MAE weights each included forecast-target pair equally, so it is not generally the simple average of per-sensor MAEs.”
+
+### Detail 21 — GPU checks and numerical precision
+
+**Insert on the slide**
+
+- **DEVICE** — Move model and batch tensors; to compatible devices
+
+- **PARITY** — Compare isolated and batched; inputs and outputs
+
+- **TIMING** — Warm up and synchronize; measure the defined scope
+
+
+**What to say**
+
+“The contextual probe checks the recurrent inputs exactly and compares outputs within tolerance. Floating point calculations can differ slightly across execution layouts. An early 256-width probe failed and the revised explicit FP32 check passed. A warmed repeated-batch timing omits other full-epoch work.”
